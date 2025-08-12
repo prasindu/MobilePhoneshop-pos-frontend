@@ -1,136 +1,94 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios'; // Import axios
 import { 
-  ShoppingCart, 
-  Plus, 
-  Minus, 
-  Trash2, 
-  DollarSign, 
-  Package, 
-  BarChart3, 
-  Calendar, 
-  User, 
-  LogOut, 
-  Search,
-  Eye,
-  TrendingUp,
-  TrendingDown,
-  Download,
-  Receipt,
-  Phone,
-  MapPin,
-  Mail,
-  Clock,
-  X,
-  Edit,
-  Save,
-  PlusCircle,
-  Filter
+  ShoppingCart, Plus, Minus, Trash2, DollarSign, Package, 
+  BarChart3, Calendar, User, LogOut, Search, Eye, 
+  TrendingUp, TrendingDown, Download, Receipt, Phone, 
+  MapPin, Mail, Clock, X, Edit, Save, 
+  PlusCircle, Filter, Barcode, Printer, RefreshCw, Upload, Image
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
-// Enhanced database with more sample data
+// Enhanced database with sample data
 const DATABASE = {
+  users: [
+    { id: 1, username: 'admin', password: 'admin123', role: 'manager', name: 'Admin User' },
+    { id: 2, username: 'cashier', password: 'cash123', role: 'cashier', name: 'John Cashier' }
+  ],
+  categories: ['smartphones', 'accessories', 'laptops', 'tablets', 'wearables'],
   products: [
     {
       id: 1,
-      name: "iPhone 15 Pro",
-      receivedPrice: 850,
+      name: 'iPhone 15 Pro',
+      receivedPrice: 800,
       sellingPrice: 999,
-      description: "Latest iPhone with titanium build and A17 Pro chip",
+      description: 'Latest iPhone with titanium build',
       stock: 25,
-      category: "smartphones",
-      barcode: "1234567890123"
+      category: 'smartphones',
+      barcode: 'IPH15PRO001',
+      image: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400&h=400&fit=crop'
     },
     {
       id: 2,
-      name: "Samsung Galaxy S24",
-      receivedPrice: 750,
+      name: 'Samsung Galaxy S24',
+      receivedPrice: 700,
       sellingPrice: 899,
-      description: "Flagship Android phone with AI features",
-      stock: 30,
-      category: "smartphones",
-      barcode: "2345678901234"
+      description: 'Premium Android flagship',
+      stock: 18,
+      category: 'smartphones',
+      barcode: 'SGS24001',
+      image: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=400&h=400&fit=crop'
     },
     {
       id: 3,
-      name: "AirPods Pro 2",
-      receivedPrice: 180,
-      sellingPrice: 249,
-      description: "Wireless earbuds with active noise cancellation",
-      stock: 50,
-      category: "audio",
-      barcode: "3456789012345"
+      name: 'MacBook Air M3',
+      receivedPrice: 1000,
+      sellingPrice: 1299,
+      description: '13-inch laptop with M3 chip',
+      stock: 12,
+      category: 'laptops',
+      barcode: 'MBA13M3001',
+      image: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=400&h=400&fit=crop'
     },
     {
       id: 4,
-      name: "Fast Wireless Charger",
-      receivedPrice: 25,
-      sellingPrice: 39,
-      description: "15W fast wireless charging pad",
-      stock: 75,
-      category: "chargers",
-      barcode: "4567890123456"
+      name: 'iPad Pro',
+      receivedPrice: 600,
+      sellingPrice: 799,
+      description: '11-inch tablet with M4 chip',
+      stock: 8,
+      category: 'tablets',
+      barcode: 'IPADPRO11001',
+      image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop'
     },
     {
       id: 5,
-      name: "MagSafe Phone Case",
-      receivedPrice: 15,
-      sellingPrice: 29,
-      description: "Premium protective case with MagSafe",
-      stock: 100,
-      category: "cases",
-      barcode: "5678901234567"
+      name: 'AirPods Pro',
+      receivedPrice: 150,
+      sellingPrice: 249,
+      description: 'Wireless earbuds with noise cancellation',
+      stock: 30,
+      category: 'accessories',
+      barcode: 'AIRPODSPRO001',
+      image: 'https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?w=400&h=400&fit=crop'
     }
   ],
   sales: [
-    { 
-      id: 'INV-001', 
-      date: '2024-08-01', 
+    {
+      id: 'INV-20241201001',
+      date: '2024-12-01',
       time: '10:30:00',
-      items: [{ productId: 1, productName: 'iPhone 15 Pro', quantity: 2, unitPrice: 999 }], 
-      total: 1998, 
-      profit: 298, 
-      discount: 0,
-      discountType: 'percentage',
-      customerInfo: { name: 'John Doe', phone: '123-456-7890', email: 'john@email.com' },
-      notes: 'Customer requested expedited service',
-      cashier: 'admin'
-    },
-    { 
-      id: 'INV-002', 
-      date: '2024-08-02', 
-      time: '14:15:00',
-      items: [{ productId: 3, productName: 'AirPods Pro 2', quantity: 1, unitPrice: 249 }], 
-      total: 224.1, 
-      profit: 44.1, 
-      discount: 10,
-      discountType: 'percentage',
-      customerInfo: { name: 'Jane Smith', phone: '234-567-8901' },
-      notes: '',
-      cashier: 'cashier'
-    },
-    { 
-      id: 'INV-003', 
-      date: '2024-08-03', 
-      time: '16:45:00',
       items: [
-        { productId: 2, productName: 'Samsung Galaxy S24', quantity: 1, unitPrice: 899 }, 
-        { productId: 4, productName: 'Fast Wireless Charger', quantity: 2, unitPrice: 39 }
-      ], 
-      total: 977, 
-      profit: 177, 
-      discount: 0,
-      discountType: 'percentage',
-      customerInfo: { name: 'Mike Johnson', phone: '345-678-9012' },
-      notes: 'Bundle discount applied',
+        { productId: 1, productName: 'iPhone 15 Pro', quantity: 1, unitPrice: 999 },
+        { productId: 5, productName: 'AirPods Pro', quantity: 1, unitPrice: 249 }
+      ],
+      total: 1248,
+      profit: 348,
+      customerInfo: { name: 'John Doe', phone: '555-0123' },
+      notes: 'Customer requested gift wrapping',
       cashier: 'admin'
     }
   ],
-  users: [
-    { id: 1, username: 'admin', password: 'admin123', role: 'manager' },
-    { id: 2, username: 'cashier', password: 'cash123', role: 'cashier' }
-  ],
-  categories: ['smartphones', 'audio', 'chargers', 'cases', 'tablets', 'smartwatches', 'cables'],
   storeInfo: {
     name: 'MobileHub',
     tagline: 'Your Mobile Technology Partner',
@@ -138,7 +96,7 @@ const DATABASE = {
     phone: '+1 (555) 123-4567',
     email: 'info@mobilehub.com',
     website: 'www.mobilehub.com',
-    taxId: 'TAX-123456789'
+    taxId: 'TX123456789'
   }
 };
 
@@ -184,7 +142,8 @@ const POSSystem = () => {
     description: '',
     stock: '',
     category: 'smartphones',
-    barcode: ''
+    barcode: '',
+    image: ''
   });
   const [newCategory, setNewCategory] = useState('');
 
@@ -205,6 +164,53 @@ const POSSystem = () => {
   // Inventory editing state
   const [editingProductId, setEditingProductId] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
+
+  // Barcode scanning state
+  const [barcodeInput, setBarcodeInput] = useState('');
+
+  // Category filter for products
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  // Return management state
+  const [returnReason, setReturnReason] = useState('');
+  const [returnItems, setReturnItems] = useState([]);
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [saleToReturn, setSaleToReturn] = useState(null);
+
+  // Image upload states
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0); // Track upload progress
+  const fileInputRef = useRef(null);
+  const editFileInputRef = useRef(null);
+
+  // Cloudinary configuration - REPLACE WITH YOUR OWN CREDENTIALS
+  const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/dkks7qctm/image/upload';
+  const UPLOAD_PRESET = 'pos-img';
+
+  // Function to upload image to Cloudinary
+  const uploadImageToCloudinary = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', UPLOAD_PRESET);
+    
+    try {
+      const response = await axios.post(CLOUDINARY_UPLOAD_URL, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          setUploadProgress(percentCompleted);
+        }
+      });
+      return response.data.secure_url;
+    } catch (error) {
+      console.error('Cloudinary upload error:', error);
+      throw new Error('Image upload failed. Please try again.');
+    }
+  };
 
   // Login handler
   const handleLogin = (e) => {
@@ -233,6 +239,49 @@ const POSSystem = () => {
     setEditingProduct(null);
   };
 
+  // Image upload handler
+  const handleImageUpload = async (event, isEditing = false) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    if (file.size > 2 * 1024 * 1024) {
+      alert('File size too large. Please choose an image under 2MB.');
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select a valid image file.');
+      return;
+    }
+
+    setUploadingImage(true);
+    setUploadProgress(0);
+
+    try {
+      const imageUrl = await uploadImageToCloudinary(file);
+      
+      if (isEditing && editingProduct) {
+        setEditingProduct(prev => ({ ...prev, image: imageUrl }));
+      } else {
+        setNewProduct(prev => ({ ...prev, image: imageUrl }));
+      }
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setUploadingImage(false);
+      setUploadProgress(0);
+    }
+  };
+
+  // Trigger file input
+  const triggerImageUpload = (isEditing = false) => {
+    if (isEditing) {
+      editFileInputRef.current?.click();
+    } else {
+      fileInputRef.current?.click();
+    }
+  };
+
   // Add custom item to cart
   const addCustomItemToCart = () => {
     if (!customItem.name || !customItem.price) {
@@ -244,7 +293,7 @@ const POSSystem = () => {
       id: `custom-${Date.now()}`,
       name: customItem.name,
       sellingPrice: parseFloat(customItem.price),
-      receivedPrice: 0, // Custom items have no cost
+      receivedPrice: 0,
       description: customItem.description || 'Custom item',
       quantity: parseInt(customItem.quantity),
       category: 'custom',
@@ -261,9 +310,18 @@ const POSSystem = () => {
 
   // Add to cart
   const addToCart = (product) => {
+    if (product.stock <= 0) {
+      alert(`Sorry, ${product.name} is out of stock!`);
+      return;
+    }
+    
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
+        if (existing.quantity + 1 > product.stock) {
+          alert(`Only ${product.stock} units of ${product.name} available!`);
+          return prev;
+        }
         return prev.map(item =>
           item.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
@@ -284,6 +342,14 @@ const POSSystem = () => {
     if (quantity <= 0) {
       setCart(prev => prev.filter(item => item.id !== productId));
     } else {
+      const product = products.find(p => p.id === productId);
+      if (!product) return;
+      
+      if (quantity > product.stock) {
+        alert(`Only ${product.stock} units of ${product.name} available!`);
+        return;
+      }
+      
       setCart(prev =>
         prev.map(item =>
           item.id === productId ? { ...item, quantity } : item
@@ -352,6 +418,17 @@ const POSSystem = () => {
       return;
     }
 
+    const insufficientStockItems = cart.filter(item => {
+      if (item.isCustom) return false;
+      const product = products.find(p => p.id === item.id);
+      return product.stock < item.quantity;
+    });
+
+    if (insufficientStockItems.length > 0) {
+      alert(`Cannot complete sale: Insufficient stock for ${insufficientStockItems.map(i => i.name).join(', ')}`);
+      return;
+    }
+
     const { total, profit } = getCartTotals();
 
     const newSale = {
@@ -378,7 +455,6 @@ const POSSystem = () => {
 
     setSales(prev => [...prev, newSale]);
     
-    // Update stock for non-custom items
     setProducts(prev =>
       prev.map(product => {
         const cartItem = cart.find(item => item.id === product.id && !item.isCustom);
@@ -389,16 +465,24 @@ const POSSystem = () => {
       })
     );
 
-    // Generate and download PDF
     downloadBillPDF(newSale);
 
-    // Reset form
     setCart([]);
     setCustomerInfo({ name: '', phone: '', email: '', address: '' });
     setBillNotes('');
     setDiscount(0);
     
     alert(`Sale completed! Total: $${total.toFixed(2)}\nBill downloaded as HTML file.`);
+  };
+
+  // Print bill
+  const printBill = (saleData) => {
+    const billHTML = generateBillHTML(saleData);
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(billHTML);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
   };
 
   // Generate PDF bill content
@@ -564,7 +648,8 @@ const POSSystem = () => {
       description: '',
       stock: '',
       category: 'smartphones',
-      barcode: ''
+      barcode: '',
+      image: ''
     });
     alert('Product added successfully!');
   };
@@ -579,9 +664,16 @@ const POSSystem = () => {
   const saveEditedProduct = () => {
     if (!editingProduct) return;
     
+    const updatedProduct = {
+      ...editingProduct,
+      receivedPrice: parseFloat(editingProduct.receivedPrice),
+      sellingPrice: parseFloat(editingProduct.sellingPrice),
+      stock: parseInt(editingProduct.stock)
+    };
+    
     setProducts(prev =>
       prev.map(p => 
-        p.id === editingProductId ? editingProduct : p
+        p.id === editingProductId ? updatedProduct : p
       )
     );
     
@@ -603,6 +695,26 @@ const POSSystem = () => {
     product.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Filter by category
+  const getProductsByCategory = () => {
+    if (selectedCategory === 'all') return filteredProducts;
+    return filteredProducts.filter(p => p.category === selectedCategory);
+  };
+
+  // Handle barcode scanning
+  const handleBarcodeScan = (e) => {
+    e.preventDefault();
+    if (!barcodeInput) return;
+    
+    const product = products.find(p => p.barcode === barcodeInput);
+    if (product) {
+      addToCart(product);
+      setBarcodeInput('');
+    } else {
+      alert('Product not found!');
+    }
+  };
+
   // Filter sales by search term
   const filteredSales = sales.filter(sale =>
     sale.id.toLowerCase().includes(salesSearchTerm.toLowerCase()) ||
@@ -618,7 +730,6 @@ const POSSystem = () => {
       startDate = new Date(dateFilter.analyticsStartDate);
       endDate = new Date(dateFilter.analyticsEndDate);
     } else {
-      // Default to last 7 days
       endDate = new Date();
       startDate = new Date();
       startDate.setDate(startDate.getDate() - 6);
@@ -694,6 +805,75 @@ const POSSystem = () => {
     }));
   };
 
+  // Initialize return process
+  const initReturn = (sale) => {
+    setSaleToReturn(sale);
+    setReturnItems(sale.items.map(item => ({ ...item, returnQty: 0 })));
+    setShowReturnModal(true);
+  };
+
+  // Update return quantity
+  const updateReturnQty = (index, quantity) => {
+    setReturnItems(prev => 
+      prev.map((item, i) => 
+        i === index ? { ...item, returnQty: Math.min(quantity, item.quantity) } : item
+      )
+    );
+  };
+
+  // Process return
+  const processReturn = () => {
+    const validReturns = returnItems.filter(item => item.returnQty > 0);
+    if (validReturns.length === 0) {
+      alert('No items selected for return');
+      return;
+    }
+
+    const returnObj = {
+      id: `RTN-${Date.now()}`,
+      originalSaleId: saleToReturn.id,
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString(),
+      items: validReturns.map(item => ({
+        productId: item.productId,
+        productName: item.productName,
+        quantity: item.returnQty,
+        unitPrice: item.unitPrice,
+        reason: returnReason
+      })),
+      totalRefund: validReturns.reduce((sum, item) => sum + (item.unitPrice * item.returnQty), 0),
+      cashier: currentUser.username
+    };
+
+    // Create a return entry (marked as return)
+    setSales(prev => [...prev, {
+      ...saleToReturn,
+      id: returnObj.id,
+      total: -returnObj.totalRefund,
+      profit: -validReturns.reduce((sum, item) => {
+        const product = products.find(p => p.id === item.productId);
+        return sum + ((item.unitPrice - (product?.receivedPrice || 0)) * item.returnQty);
+      }, 0),
+      isReturn: true,
+      returnReason: returnReason
+    }]);
+
+    // Restock returned items
+    setProducts(prev => 
+      prev.map(product => {
+        const returnItem = validReturns.find(ri => ri.productId === product.id);
+        if (returnItem) {
+          return { ...product, stock: product.stock + returnItem.returnQty };
+        }
+        return product;
+      })
+    );
+
+    alert(`Return processed successfully! Refund amount: ${returnObj.totalRefund.toFixed(2)}`);
+    setShowReturnModal(false);
+    setReturnReason('');
+  };
+
   // Colors for pie chart
   const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#06b6d4'];
 
@@ -743,6 +923,22 @@ const POSSystem = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Hidden file inputs */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={(e) => handleImageUpload(e, false)}
+        accept="image/*"
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={editFileInputRef}
+        onChange={(e) => handleImageUpload(e, true)}
+        accept="image/*"
+        className="hidden"
+      />
+
       {/* Header */}
       <header className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
         <div className="px-6 py-4">
@@ -871,6 +1067,62 @@ const POSSystem = () => {
                 </div>
               </div>
 
+              {/* Barcode Scanner */}
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                  <Barcode className="w-5 h-5 mr-2" />
+                  Barcode Scanner
+                </h2>
+                <form onSubmit={handleBarcodeScan} className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Scan barcode..."
+                    value={barcodeInput}
+                    onChange={(e) => setBarcodeInput(e.target.value)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg"
+                  >
+                    Add
+                  </button>
+                </form>
+              </div>
+
+              {/* Category Filter */}
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                  <Filter className="w-5 h-5 mr-2" />
+                  Category Filter
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setSelectedCategory('all')}
+                    className={`px-4 py-2 rounded-lg ${
+                      selectedCategory === 'all' 
+                        ? 'bg-indigo-600 text-white' 
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    All Categories
+                  </button>
+                  {categories.map(category => (
+                    <button
+                      key={category}
+                      onClick={() => setSelectedCategory(category)}
+                      className={`px-4 py-2 rounded-lg capitalize ${
+                        selectedCategory === category
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                      >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Product Selection */}
                 <div className="lg:col-span-2">
@@ -899,12 +1151,30 @@ const POSSystem = () => {
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-                      {filteredProducts.map(product => (
+                      {getProductsByCategory().map(product => (
                         <div
                           key={product.id}
                           onClick={() => addToCart(product)}
                           className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 hover:shadow-md transition-all duration-300 cursor-pointer"
                         >
+                          <div className="mb-3 h-40 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
+                            {product.image ? (
+                              <img 
+                                src={product.image} 
+                                alt={product.name} 
+                                className="object-cover w-full h-full"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div 
+                              className={`w-full h-full flex items-center justify-center ${product.image ? 'hidden' : ''}`}
+                            >
+                              <Package className="w-12 h-12 text-gray-400" />
+                            </div>
+                          </div>
                           <div className="flex justify-between items-start mb-2">
                             <h3 className="font-semibold text-gray-800">{product.name}</h3>
                             <span className="text-lg font-bold text-indigo-600">${product.sellingPrice}</span>
@@ -929,7 +1199,7 @@ const POSSystem = () => {
                   </div>
                 </div>
 
-                {/* Enhanced Cart with Bill Preview and Per-Item Discounts */}
+                {/* Enhanced Cart */}
                 <div className="bg-white rounded-xl shadow-lg p-6">
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-gray-800">Cart</h2>
@@ -1074,13 +1344,33 @@ const POSSystem = () => {
                         </div>
                       </div>
                       
-                      <button
-                        onClick={completeSale}
-                        className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center"
-                      >
-                        <Receipt className="w-5 h-5 mr-2" />
-                        Complete Sale & Print Bill
-                      </button>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          onClick={() => printBill({
+                            id: `INV-${Date.now()}`,
+                            date: new Date().toISOString().split('T')[0],
+                            time: new Date().toLocaleTimeString(),
+                            items: cart,
+                            total: getCartTotals().total,
+                            profit: getCartTotals().profit,
+                            customerInfo,
+                            notes: billNotes,
+                            cashier: currentUser.username
+                          })}
+                          className="bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold flex items-center justify-center"
+                        >
+                          <Printer className="w-5 h-5 mr-2" />
+                          Print Preview
+                        </button>
+                        
+                        <button
+                          onClick={completeSale}
+                          className="bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center"
+                        >
+                          <Receipt className="w-5 h-5 mr-2" />
+                          Complete Sale
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1088,7 +1378,7 @@ const POSSystem = () => {
             </div>
           )}
 
-          {/* Inventory Tab with Editing Functionality */}
+          {/* Inventory Tab */}
           {activeTab === 'inventory' && (
             <div className="space-y-6">
               {/* Add Product Form */}
@@ -1182,9 +1472,54 @@ const POSSystem = () => {
                     Add Product
                   </button>
                 </div>
+
+                {/* Image Upload Section */}
+                <div className="mt-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Product Image
+                  </label>
+                  
+                  {newProduct.image ? (
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="relative">
+                        <img 
+                          src={newProduct.image} 
+                          alt="Product preview" 
+                          className="w-24 h-24 object-contain border rounded-lg"
+                        />
+                        <button
+                          onClick={() => setNewProduct(prev => ({ ...prev, image: '' }))}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => triggerImageUpload(false)}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg"
+                        disabled={uploadingImage}
+                      >
+                        {uploadingImage ? 'Uploading...' : 'Change Image'}
+                      </button>
+                    </div>
+                  ) : (
+                    <div 
+                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer hover:border-indigo-400 ${uploadingImage ? 'opacity-50' : ''}`}
+                      onClick={() => !uploadingImage && triggerImageUpload(false)}
+                    >
+                      <Upload className={`w-12 h-12 mx-auto mb-2 text-gray-400 ${uploadingImage ? 'animate-pulse' : ''}`} />
+                      <p className={`text-sm text-gray-600`}>
+                        {uploadingImage ? 'Uploading image...' : 'Click to upload an image'}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        JPG, PNG up to 2MB
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Products List with Edit Functionality */}
+              {/* Products List */}
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">Current Inventory</h2>
                 
@@ -1193,6 +1528,7 @@ const POSSystem = () => {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Product</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Image</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">SKU</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Category</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Received Price</th>
@@ -1221,6 +1557,57 @@ const POSSystem = () => {
                                 <div>
                                   <div className="font-medium text-gray-900">{product.name}</div>
                                   <div className="text-sm text-gray-500">{product.description}</div>
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-4">
+                              {isEditing ? (
+                                <div className="flex flex-col items-center">
+                                  {editingProduct.image ? (
+                                    <div className="relative mb-2">
+                                      <img 
+                                        src={editingProduct.image} 
+                                        alt="Product preview" 
+                                        className="w-16 h-16 object-contain border rounded"
+                                      />
+                                      <button
+                                        onClick={() => setEditingProduct(prev => ({ ...prev, image: '' }))}
+                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  ) : null}
+                                  
+                                  <button
+                                    onClick={() => triggerImageUpload(true)}
+                                    className="text-sm bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded flex items-center"
+                                    disabled={uploadingImage}
+                                  >
+                                    <Image className="w-4 h-4 mr-1" />
+                                    {uploadingImage ? 'Uploading...' : (editingProduct.image ? 'Change' : 'Upload')}
+                                  </button>
+                                </div>
+                              ) : product.image ? (
+                                <img 
+                                  src={product.image} 
+                                  alt={product.name} 
+                                  className="w-16 h-16 object-contain mx-auto"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                  }}
+                                />
+                              ) : (
+                                <div className="text-center text-gray-400">
+                                  <Image className="w-8 h-8 mx-auto" />
+                                  <span className="text-xs">No image</span>
+                                </div>
+                              )}
+                              {product.image && (
+                                <div className="text-center text-gray-400 hidden">
+                                  <Image className="w-8 h-8 mx-auto" />
+                                  <span className="text-xs">Error loading</span>
                                 </div>
                               )}
                             </td>
@@ -1256,7 +1643,7 @@ const POSSystem = () => {
                                 <input
                                   type="number"
                                   value={editingProduct.receivedPrice}
-                                  onChange={e => setEditingProduct({...editingProduct, receivedPrice: e.target.value})}
+                                  onChange={e => setEditingProduct({...editingProduct, receivedPrice: parseFloat(e.target.value)})}
                                   className="w-full px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                                 />
                               ) : (
@@ -1268,7 +1655,7 @@ const POSSystem = () => {
                                 <input
                                   type="number"
                                   value={editingProduct.sellingPrice}
-                                  onChange={e => setEditingProduct({...editingProduct, sellingPrice: e.target.value})}
+                                  onChange={e => setEditingProduct({...editingProduct, sellingPrice: parseFloat(e.target.value)})}
                                   className="w-full px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                                 />
                               ) : (
@@ -1280,7 +1667,7 @@ const POSSystem = () => {
                                 <input
                                   type="number"
                                   value={editingProduct.stock}
-                                  onChange={e => setEditingProduct({...editingProduct, stock: e.target.value})}
+                                  onChange={e => setEditingProduct({...editingProduct, stock: parseInt(e.target.value)})}
                                   className="w-full px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                                 />
                               ) : (
@@ -1322,7 +1709,7 @@ const POSSystem = () => {
                                 <button
                                   onClick={() => startEditing(product)}
                                   className="text-indigo-600 hover:text-indigo-800"
-                                >
+                                  >
                                   <Edit className="w-5 h-5" />
                                 </button>
                               )}
@@ -1337,7 +1724,7 @@ const POSSystem = () => {
             </div>
           )}
 
-          {/* Enhanced Analytics Tab */}
+          {/* Analytics Tab */}
           {activeTab === 'analytics' && (
             <div className="space-y-6">
               {/* Date Range Filter for Analytics */}
@@ -1452,7 +1839,7 @@ const POSSystem = () => {
                 </div>
               </div>
 
-              {/* Category Performance and Daily Summary */}
+              {/* Category Performance */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white rounded-xl shadow-lg p-6">
                   <h3 className="text-xl font-bold text-gray-800 mb-4">Sales by Category</h3>
@@ -1495,37 +1882,10 @@ const POSSystem = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Period Summary */}
-              {(dateFilter.analyticsStartDate && dateFilter.analyticsEndDate) && (
-                <div className="bg-white rounded-xl shadow-lg p-6">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4">Period Summary</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="text-center">
-                      <p className="text-3xl font-bold text-green-600">
-                        ${getSalesChartData().reduce((sum, day) => sum + day.sales, 0).toFixed(2)}
-                      </p>
-                      <p className="text-gray-600">Total Revenue</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-blue-600">
-                        ${getSalesChartData().reduce((sum, day) => sum + day.profit, 0).toFixed(2)}
-                      </p>
-                      <p className="text-gray-600">Total Profit</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-purple-600">
-                        ${(getSalesChartData().reduce((sum, day) => sum + day.sales, 0) / getSalesChartData().length).toFixed(2)}
-                      </p>
-                      <p className="text-gray-600">Daily Average</p>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
-          {/* Enhanced Sales History Tab */}
+          {/* Sales History Tab */}
           {activeTab === 'sales' && (
             <div className="space-y-6">
               {/* Search and Date Filters */}
@@ -1615,7 +1975,10 @@ const POSSystem = () => {
                         (sale.customerInfo?.phone || '').includes(salesSearchTerm)
                       ).map(sale => (
                         <tr key={sale.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-4 text-sm font-medium text-gray-900 font-mono">{sale.id}</td>
+                          <td className="px-4 py-4 text-sm font-medium text-gray-900 font-mono">
+                            {sale.isReturn && <span className="text-red-600 text-xs">RETURN </span>}
+                            {sale.id}
+                          </td>
                           <td className="px-4 py-4 text-sm text-gray-900">
                             <div>{new Date(sale.date).toLocaleDateString()}</div>
                             {sale.time && <div className="text-xs text-gray-500">{sale.time}</div>}
@@ -1629,11 +1992,11 @@ const POSSystem = () => {
                           <td className="px-4 py-4 text-sm text-gray-900">
                             {sale.items.reduce((sum, item) => sum + item.quantity, 0)} items
                           </td>
-                          <td className="px-4 py-4 text-sm font-semibold text-green-600">
-                            ${sale.total.toFixed(2)}
+                          <td className={`px-4 py-4 text-sm font-semibold ${sale.total < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            ${Math.abs(sale.total).toFixed(2)}
                           </td>
-                          <td className="px-4 py-4 text-sm font-semibold text-blue-600">
-                            ${sale.profit.toFixed(2)}
+                          <td className={`px-4 py-4 text-sm font-semibold ${sale.profit < 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                            ${Math.abs(sale.profit).toFixed(2)}
                           </td>
                           <td className="px-4 py-4 text-sm">
                             <div className="flex space-x-2">
@@ -1654,6 +2017,15 @@ const POSSystem = () => {
                                 <Eye className="w-4 h-4 mr-1" />
                                 Details
                               </button>
+                              {!sale.isReturn && (
+                                <button 
+                                  onClick={() => initReturn(sale)}
+                                  className="text-red-600 hover:text-red-800 flex items-center"
+                              >
+                                  <RefreshCw className="w-4 h-4 mr-1" />
+                                  Return
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1749,7 +2121,9 @@ const POSSystem = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-4xl mx-4 max-h-screen overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold text-gray-800">Sale Details - {selectedSale.id}</h3>
+              <h3 className="text-2xl font-bold text-gray-800">
+                {selectedSale.isReturn ? 'Return Details' : 'Sale Details'} - {selectedSale.id}
+              </h3>
               <button
                 onClick={() => setShowSaleDetails(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -1764,7 +2138,7 @@ const POSSystem = () => {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
                     <Receipt className="w-5 h-5 mr-2" />
-                    Sale Information
+                    {selectedSale.isReturn ? 'Return' : 'Sale'} Information
                   </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
@@ -1787,6 +2161,12 @@ const POSSystem = () => {
                       <span className="text-gray-600">Total Items:</span>
                       <span>{selectedSale.items.reduce((sum, item) => sum + item.quantity, 0)}</span>
                     </div>
+                    {selectedSale.returnReason && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Return Reason:</span>
+                        <span>{selectedSale.returnReason}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1813,12 +2193,6 @@ const POSSystem = () => {
                         <span>{selectedSale.customerInfo.email}</span>
                       </div>
                     )}
-                    {selectedSale.customerInfo?.address && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Address:</span>
-                        <span>{selectedSale.customerInfo.address}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -1833,22 +2207,17 @@ const POSSystem = () => {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Subtotal:</span>
-                      <span>${selectedSale.items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0).toFixed(2)}</span>
+                      <span>${Math.abs(selectedSale.items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)).toFixed(2)}</span>
                     </div>
-                    {selectedSale.discount > 0 && (
-                      <div className="flex justify-between text-red-600">
-                        <span>Global Discount (${selectedSale.discountType === 'percentage' ? selectedSale.discount + '%' : 
-                 + selectedSale.discount}):</span>
-                        <span>-${(selectedSale.items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0) - selectedSale.total).toFixed(2)}</span>
-                      </div>
-                    )}
                     <div className="flex justify-between font-semibold text-lg border-t pt-2">
-                      <span>Total:</span>
-                      <span className="text-green-600">${selectedSale.total.toFixed(2)}</span>
+                      <span>{selectedSale.isReturn ? 'Refund:' : 'Total:'}</span>
+                      <span className={selectedSale.isReturn ? 'text-red-600' : 'text-green-600'}>
+                        ${Math.abs(selectedSale.total).toFixed(2)}
+                      </span>
                     </div>
-                    <div className="flex justify-between text-blue-600">
-                      <span>Profit:</span>
-                      <span>${selectedSale.profit.toFixed(2)}</span>
+                    <div className={`flex justify-between ${selectedSale.isReturn ? 'text-red-600' : 'text-blue-600'}`}>
+                      <span>{selectedSale.isReturn ? 'Loss:' : 'Profit:'}</span>
+                      <span>${Math.abs(selectedSale.profit).toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -1866,7 +2235,7 @@ const POSSystem = () => {
             <div className="mb-6">
               <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
                 <Package className="w-5 h-5 mr-2" />
-                Items Sold
+                Items {selectedSale.isReturn ? 'Returned' : 'Sold'}
               </h4>
               <div className="overflow-x-auto">
                 <table className="w-full table-auto border border-gray-200 rounded-lg">
@@ -1874,38 +2243,24 @@ const POSSystem = () => {
                     <tr>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Product</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Unit Price</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Discount</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Discounted Price</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Quantity</th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Total</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {selectedSale.items.map((item, index) => {
-                      const discountedPrice = item.discountType === 'percentage' 
-                        ? item.unitPrice * (1 - item.discount / 100)
-                        : Math.max(0, item.unitPrice - item.discount);
-                        
-                      return (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm">
-                            <div className="font-medium text-gray-900">{item.productName}</div>
-                            {item.isCustom && <span className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded">Custom Item</span>}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">${item.unitPrice.toFixed(2)}</td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {item.discount > 0 
-                              ? `${item.discount}${item.discountType === 'percentage' ? '%' : '$'}` 
-                              : '-'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">${discountedPrice.toFixed(2)}</td>
-                          <td className="px-4 py-3 text-sm text-gray-900">{item.quantity}</td>
-                          <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                            ${(discountedPrice * item.quantity).toFixed(2)}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {selectedSale.items.map((item, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm">
+                          <div className="font-medium text-gray-900">{item.productName}</div>
+                          {item.isCustom && <span className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded">Custom Item</span>}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-900">${item.unitPrice.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900">{item.quantity}</td>
+                        <td className="px-4 py-3 text-sm font-semibold text-gray-900">
+                          ${(item.unitPrice * item.quantity).toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -1928,6 +2283,113 @@ const POSSystem = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Return Modal */}
+      {showReturnModal && saleToReturn && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-4xl mx-4 max-h-screen overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-800">
+                Process Return - {saleToReturn.id}
+              </h3>
+              <button onClick={() => setShowReturnModal(false)}>
+                <X className="w-6 h-6 text-gray-400 hover:text-gray-600" />
+              </button>
+            </div>
+            
+            <div className="mb-6">
+              <h4 className="font-semibold text-gray-800 mb-4">Select Items to Return</h4>
+              <table className="w-full table-auto border border-gray-200 rounded-lg">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Product</th>
+                    <th className="px-4 py-3 text-left">Original Qty</th>
+                    <th className="px-4 py-3 text-left">Return Qty</th>
+                    <th className="px-4 py-3 text-left">Unit Price</th>
+                    <th className="px-4 py-3 text-left">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {returnItems.map((item, index) => (
+                    <tr key={index} className="border-b border-gray-200 hover:bg-gray-50">
+                      <td className="px-4 py-3">{item.productName}</td>
+                      <td className="px-4 py-3">{item.quantity}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center">
+                          <button 
+                            onClick={() => updateReturnQty(index, Math.max(0, item.returnQty - 1))}
+                            className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center hover:bg-gray-300"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="mx-2 w-8 text-center">{item.returnQty}</span>
+                          <button 
+                            onClick={() => updateReturnQty(index, Math.min(item.quantity, item.returnQty + 1))}
+                            className="w-6 h-6 bg-indigo-200 rounded-full flex items-center justify-center hover:bg-indigo-300"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">${item.unitPrice.toFixed(2)}</td>
+                      <td className="px-4 py-3 font-medium">
+                        ${(item.returnQty * item.unitPrice).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-gray-50">
+                  <tr>
+                    <td colSpan="4" className="px-4 py-3 text-right font-semibold">Total Refund:</td>
+                    <td className="px-4 py-3 font-bold text-red-600">
+                      ${returnItems.reduce((sum, item) => sum + (item.returnQty * item.unitPrice), 0).toFixed(2)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            
+            <div className="mb-6">
+              <label className="block font-medium text-gray-700 mb-2">
+                Reason for Return
+              </label>
+              <textarea
+                value={returnReason}
+                onChange={(e) => setReturnReason(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                rows="3"
+                placeholder="Enter reason for return..."
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowReturnModal(false)}
+                className="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={processReturn}
+                disabled={returnItems.filter(item => item.returnQty > 0).length === 0}
+                className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Process Return
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Progress Indicator */}
+      {uploadingImage && (
+        <div className="fixed bottom-4 right-4 bg-white shadow-lg rounded-lg p-4 flex items-center">
+          <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mr-3"></div>
+          <span className="text-gray-700">
+            Uploading... {uploadProgress}%
+          </span>
         </div>
       )}
     </div>

@@ -10,7 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.54.0",
     "@tailwindcss/vite": "^4.1.11",
+    "axios": "^1.11.0",
+    "dropbox": "^10.34.0",
+    "googleapis": "^155.0.1",
     "lucide-react": "^0.539.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
