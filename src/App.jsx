@@ -1,5 +1,6 @@
+/* src/App.jsx */
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios'; // Import axios
+import axios from 'axios';
 import { 
   ShoppingCart, Plus, Minus, Trash2, DollarSign, Package, 
   BarChart3, Calendar, User, LogOut, Search, Eye, 
@@ -9,96 +10,7 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
-// Enhanced database with sample data
-const DATABASE = {
-  users: [
-    { id: 1, username: 'admin', password: 'admin123', role: 'manager', name: 'Admin User' },
-    { id: 2, username: 'cashier', password: 'cash123', role: 'cashier', name: 'John Cashier' }
-  ],
-  categories: ['smartphones', 'accessories', 'laptops', 'tablets', 'wearables'],
-  products: [
-    {
-      id: 1,
-      name: 'iPhone 15 Pro',
-      receivedPrice: 800,
-      sellingPrice: 999,
-      description: 'Latest iPhone with titanium build',
-      stock: 25,
-      category: 'smartphones',
-      barcode: 'IPH15PRO001',
-      image: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400&h=400&fit=crop'
-    },
-    {
-      id: 2,
-      name: 'Samsung Galaxy S24',
-      receivedPrice: 700,
-      sellingPrice: 899,
-      description: 'Premium Android flagship',
-      stock: 18,
-      category: 'smartphones',
-      barcode: 'SGS24001',
-      image: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=400&h=400&fit=crop'
-    },
-    {
-      id: 3,
-      name: 'MacBook Air M3',
-      receivedPrice: 1000,
-      sellingPrice: 1299,
-      description: '13-inch laptop with M3 chip',
-      stock: 12,
-      category: 'laptops',
-      barcode: 'MBA13M3001',
-      image: 'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=400&h=400&fit=crop'
-    },
-    {
-      id: 4,
-      name: 'iPad Pro',
-      receivedPrice: 600,
-      sellingPrice: 799,
-      description: '11-inch tablet with M4 chip',
-      stock: 8,
-      category: 'tablets',
-      barcode: 'IPADPRO11001',
-      image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop'
-    },
-    {
-      id: 5,
-      name: 'AirPods Pro',
-      receivedPrice: 150,
-      sellingPrice: 249,
-      description: 'Wireless earbuds with noise cancellation',
-      stock: 30,
-      category: 'accessories',
-      barcode: 'AIRPODSPRO001',
-      image: 'https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?w=400&h=400&fit=crop'
-    }
-  ],
-  sales: [
-    {
-      id: 'INV-20241201001',
-      date: '2024-12-01',
-      time: '10:30:00',
-      items: [
-        { productId: 1, productName: 'iPhone 15 Pro', quantity: 1, unitPrice: 999 },
-        { productId: 5, productName: 'AirPods Pro', quantity: 1, unitPrice: 249 }
-      ],
-      total: 1248,
-      profit: 348,
-      customerInfo: { name: 'John Doe', phone: '555-0123' },
-      notes: 'Customer requested gift wrapping',
-      cashier: 'admin'
-    }
-  ],
-  storeInfo: {
-    name: 'MobileHub',
-    tagline: 'Your Mobile Technology Partner',
-    address: '123 Tech Street, Digital City, DC 12345',
-    phone: '+1 (555) 123-4567',
-    email: 'info@mobilehub.com',
-    website: 'www.mobilehub.com',
-    taxId: 'TX123456789'
-  }
-};
+import api from './api';
 
 const POSSystem = () => {
   // Authentication state
@@ -109,9 +21,6 @@ const POSSystem = () => {
   // Main application state
   const [activeTab, setActiveTab] = useState('billing');
   const [cart, setCart] = useState([]);
-  const [products, setProducts] = useState(DATABASE.products);
-  const [sales, setSales] = useState(DATABASE.sales);
-  const [categories, setCategories] = useState(DATABASE.categories);
   const [searchTerm, setSearchTerm] = useState('');
   
   // Customer information state
@@ -141,10 +50,12 @@ const POSSystem = () => {
     sellingPrice: '',
     description: '',
     stock: '',
-    category: 'smartphones',
+    category:  '', 
     barcode: '',
-    image: ''
+    imageUrl: ''
   });
+
+  const [editingProduct, setEditingProduct] = useState(null);
   const [newCategory, setNewCategory] = useState('');
 
   // Sales history state
@@ -163,7 +74,6 @@ const POSSystem = () => {
 
   // Inventory editing state
   const [editingProductId, setEditingProductId] = useState(null);
-  const [editingProduct, setEditingProduct] = useState(null);
 
   // Barcode scanning state
   const [barcodeInput, setBarcodeInput] = useState('');
@@ -177,17 +87,100 @@ const POSSystem = () => {
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [saleToReturn, setSaleToReturn] = useState(null);
 
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [sales, setSales] = useState([]);
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [storeInfo] = useState({
+    name: 'MobileHub Store',
+    tagline: 'Your One Stop Mobile Shop',
+    address: '123 Tech Street, Tech City',
+    phone: '+1 (555) 123-4567',
+    email: 'info@mobilehub.com',
+    website: 'www.mobilehub.com',
+    taxId: 'TAX-123456'
+  });
+  
   // Image upload states
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0); // Track upload progress
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef(null);
   const editFileInputRef = useRef(null);
 
-  // Cloudinary configuration - REPLACE WITH YOUR OWN CREDENTIALS
+  // Cloudinary configuration
   const CLOUDINARY_UPLOAD_URL = 'https://api.cloudinary.com/v1_1/dkks7qctm/image/upload';
   const UPLOAD_PRESET = 'pos-img';
 
-  // Function to upload image to Cloudinary
+  useEffect(() => {
+    const initializeUser = () => {
+      try {
+        const userJson = localStorage.getItem('user');
+        if (userJson && userJson !== "undefined") {
+          const user = JSON.parse(userJson);
+          setCurrentUser(user);
+          setIsLoggedIn(true);
+        }
+      } catch (error) {
+        console.error('Failed to parse user data:', error);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeUser();
+  }, []);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchCategories();
+      fetchProducts();
+      fetchSales();
+      fetchAnalytics();
+    }
+  }, [isLoggedIn]);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await api.login(loginForm);
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      setCurrentUser(response.data.user);
+      setIsLoggedIn(true);
+      setLoginForm({ username: '', password: '' });
+      
+      // Fetch data after login
+      fetchCategories();
+      fetchProducts();
+      fetchSales();
+      fetchAnalytics();
+    } catch (error) {
+      alert('Invalid credentials');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setCurrentUser(null);
+    setIsLoggedIn(false);
+    setCart([]);
+    setCustomerInfo({ name: '', phone: '', email: '', address: '' });
+    setBillNotes('');
+    setDiscount(0);
+    setEditingProductId(null);
+    setEditingProduct(null);
+  };
+
   const uploadImageToCloudinary = async (file) => {
     const formData = new FormData();
     formData.append('file', file);
@@ -212,34 +205,14 @@ const POSSystem = () => {
     }
   };
 
-  // Login handler
-  const handleLogin = (e) => {
-    e.preventDefault();
-    const user = DATABASE.users.find(
-      u => u.username === loginForm.username && u.password === loginForm.password
-    );
-    if (user) {
-      setCurrentUser(user);
-      setIsLoggedIn(true);
-      setLoginForm({ username: '', password: '' });
+  const triggerImageUpload = (isEditing = false) => {
+    if (isEditing) {
+      editFileInputRef.current?.click();
     } else {
-      alert('Invalid credentials');
+      fileInputRef.current?.click();
     }
   };
 
-  // Logout handler
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setIsLoggedIn(false);
-    setCart([]);
-    setCustomerInfo({ name: '', phone: '', email: '', address: '' });
-    setBillNotes('');
-    setDiscount(0);
-    setEditingProductId(null);
-    setEditingProduct(null);
-  };
-
-  // Image upload handler
   const handleImageUpload = async (event, isEditing = false) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -259,11 +232,10 @@ const POSSystem = () => {
 
     try {
       const imageUrl = await uploadImageToCloudinary(file);
-      
       if (isEditing && editingProduct) {
-        setEditingProduct(prev => ({ ...prev, image: imageUrl }));
+        setEditingProduct(prev => ({ ...prev, imageUrl }));
       } else {
-        setNewProduct(prev => ({ ...prev, image: imageUrl }));
+        setNewProduct(prev => ({ ...prev, imageUrl }));
       }
     } catch (error) {
       alert(error.message);
@@ -273,16 +245,6 @@ const POSSystem = () => {
     }
   };
 
-  // Trigger file input
-  const triggerImageUpload = (isEditing = false) => {
-    if (isEditing) {
-      editFileInputRef.current?.click();
-    } else {
-      fileInputRef.current?.click();
-    }
-  };
-
-  // Add custom item to cart
   const addCustomItemToCart = () => {
     if (!customItem.name || !customItem.price) {
       alert('Please enter item name and price');
@@ -308,7 +270,6 @@ const POSSystem = () => {
     setShowCustomItemForm(false);
   };
 
-  // Add to cart
   const addToCart = (product) => {
     if (product.stock <= 0) {
       alert(`Sorry, ${product.name} is out of stock!`);
@@ -337,7 +298,6 @@ const POSSystem = () => {
     });
   };
 
-  // Update cart quantity
   const updateCartQuantity = (productId, quantity) => {
     if (quantity <= 0) {
       setCart(prev => prev.filter(item => item.id !== productId));
@@ -358,7 +318,6 @@ const POSSystem = () => {
     }
   };
 
-  // Update item discount
   const updateItemDiscount = (productId, discount, discountType) => {
     setCart(prev =>
       prev.map(item =>
@@ -369,7 +328,6 @@ const POSSystem = () => {
     );
   };
 
-  // Calculate item price after discount
   const calculateItemPrice = (item) => {
     if (item.discountType === 'percentage') {
       return item.sellingPrice * (1 - item.discount / 100);
@@ -377,7 +335,6 @@ const POSSystem = () => {
     return Math.max(0, item.sellingPrice - item.discount);
   };
 
-  // Calculate totals
   const getCartTotals = () => {
     const subtotal = cart.reduce((sum, item) => 
       sum + (item.sellingPrice * item.quantity), 0);
@@ -388,11 +345,11 @@ const POSSystem = () => {
     const discountAmount = discountType === 'percentage' 
       ? (totalAfterItemDiscounts * discount / 100) 
       : Math.min(discount, totalAfterItemDiscounts);
-      
+
     const total = totalAfterItemDiscounts - discountAmount;
     const totalCost = cart.reduce((sum, item) => 
       sum + (item.receivedPrice * item.quantity), 0);
-    const profit = total - totalCost;
+    const profit = total - totalCost || 0;
     
     return { 
       subtotal, 
@@ -403,79 +360,165 @@ const POSSystem = () => {
     };
   };
 
-  // Add new category
-  const addCategory = () => {
-    if (newCategory && !categories.includes(newCategory)) {
-      setCategories(prev => [...prev, newCategory]);
+  const fetchCategories = async () => {
+    try {
+      const response = await api.getCategories();
+      const categoriesData = response.data || response;
+      setCategories(categoriesData.map(cat => ({
+        id: cat.id,
+        name: cat.name
+      })));
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      setCategories([]);
+    }
+  };
+
+  const addCategory = async () => {
+    if (!newCategory.trim()) return;
+    
+    try {
+      const response = await api.createCategory({ name: newCategory });
+      setCategories(prev => [...prev, response.data]);
       setNewCategory('');
+    } catch (error) {
+      console.error('Error adding category:', error);
     }
   };
 
-  // Complete sale
-  const completeSale = () => {
-    if (cart.length === 0) {
-      alert('Cart is empty!');
-      return;
+  const fetchProducts = async () => {
+    try {
+      const response = await api.getProducts({
+        category: selectedCategory !== 'all' ? selectedCategory : undefined
+      });
+      setProducts(response.data);
+    } catch (error) {
+      console.error('Error fetching products:', error);
     }
-
-    const insufficientStockItems = cart.filter(item => {
-      if (item.isCustom) return false;
-      const product = products.find(p => p.id === item.id);
-      return product.stock < item.quantity;
-    });
-
-    if (insufficientStockItems.length > 0) {
-      alert(`Cannot complete sale: Insufficient stock for ${insufficientStockItems.map(i => i.name).join(', ')}`);
-      return;
-    }
-
-    const { total, profit } = getCartTotals();
-
-    const newSale = {
-      id: `INV-${Date.now()}`,
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString(),
-      items: cart.map(item => ({
-        productId: item.id,
-        productName: item.name,
-        quantity: item.quantity,
-        unitPrice: item.sellingPrice,
-        discount: item.discount,
-        discountType: item.discountType,
-        isCustom: item.isCustom || false
-      })),
-      total,
-      profit,
-      discount: discount,
-      discountType: discountType,
-      customerInfo: { ...customerInfo },
-      notes: billNotes,
-      cashier: currentUser.username
-    };
-
-    setSales(prev => [...prev, newSale]);
-    
-    setProducts(prev =>
-      prev.map(product => {
-        const cartItem = cart.find(item => item.id === product.id && !item.isCustom);
-        if (cartItem) {
-          return { ...product, stock: product.stock - cartItem.quantity };
-        }
-        return product;
-      })
-    );
-
-    downloadBillPDF(newSale);
-
-    setCart([]);
-    setCustomerInfo({ name: '', phone: '', email: '', address: '' });
-    setBillNotes('');
-    setDiscount(0);
-    
-    alert(`Sale completed! Total: $${total.toFixed(2)}\nBill downloaded as HTML file.`);
   };
 
-  // Print bill
+  useEffect(() => {
+    fetchProducts();
+  }, [selectedCategory]);
+
+  const fetchSales = async () => {
+    try {
+      const params = {};
+      if (dateFilter.startDate && dateFilter.endDate) {
+        params.startDate = dateFilter.startDate;
+        params.endDate = dateFilter.endDate;
+      } else if (dateFilter.selectedDate) {
+        params.date = dateFilter.selectedDate;
+      }
+      
+      const response = await api.getSales(params);
+      setSales(response.data);
+    } catch (error) {
+      console.error('Error fetching sales:', error);
+    }
+  };
+
+  const fetchAnalytics = async () => {
+    try {
+      const params = {};
+      if (dateFilter.analyticsStartDate && dateFilter.analyticsEndDate) {
+        params.startDate = dateFilter.analyticsStartDate;
+        params.endDate = dateFilter.analyticsEndDate;
+      }
+      
+      const response = await api.getDashboardAnalytics(params);
+      setAnalyticsData(response.data);
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+    }
+  };
+
+  // Update useEffect hooks to call fetch functions
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchSales();
+    }
+  }, [dateFilter, isLoggedIn]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchAnalytics();
+    }
+  }, [dateFilter, isLoggedIn]);
+
+  const completeSale = async () => {
+    try {
+      const totals = getCartTotals();
+      
+      const saleData = {
+        invoiceId: `INV-${Date.now()}`,
+        total: totals.total,
+        profit: totals.profit,
+        discount: discount,
+        discountType: discountType.toUpperCase(),
+        customerName: customerInfo.name,
+        customerPhone: customerInfo.phone,
+        customerEmail: customerInfo.email,
+        customerAddress: customerInfo.address,
+        notes: billNotes,
+        items: cart.map(item => ({
+          productId: item.isCustom ? null : item.id,
+          productName: item.name,
+          unitPrice: item.sellingPrice,
+          quantity: item.quantity,
+          discount: item.discount || 0,
+          discountType: (item.discountType || 'PERCENTAGE').toUpperCase(),
+          isCustom: item.isCustom || false
+        }))
+      };
+
+      if (!saleData.items || saleData.items.length === 0) {
+        alert('Cannot create sale with empty cart');
+        return;
+      }
+      
+      await api.createSale(saleData);
+      
+      // Refresh products to get updated stock
+      await fetchProducts();
+      
+      // Reset cart and form
+      setCart([]);
+      setCustomerInfo({ name: '', phone: '', email: '', address: '' });
+      setBillNotes('');
+      setDiscount(0);
+      
+      alert('Sale completed successfully!');
+    } catch (error) {
+      console.error('Error completing sale:', error.response?.data || error.message);
+      alert('Failed to complete sale. Please try again.');
+    }
+  };
+
+  const processReturn = async () => {
+    try {
+      const returnData = {
+        originalSaleId: saleToReturn.id,
+        items: returnItems.filter(item => item.returnQty > 0),
+        reason: returnReason
+      };
+      
+      await api.processReturn(returnData);
+      
+      // Refresh sales and products
+      await fetchSales();
+      await fetchProducts();
+      
+      // Close modal and reset state
+      setShowReturnModal(false);
+      setReturnReason('');
+      setSaleToReturn(null);
+    } catch (error) {
+      console.error('Error processing return:', error);
+      alert('Failed to process return. Please try again.');
+    }
+  };
+
   const printBill = (saleData) => {
     const billHTML = generateBillHTML(saleData);
     const printWindow = window.open('', '_blank');
@@ -485,7 +528,6 @@ const POSSystem = () => {
     printWindow.print();
   };
 
-  // Generate PDF bill content
   const generateBillHTML = (saleData) => {
     const { subtotal, discountAmount, total } = getCartTotals();
     const currentDate = new Date();
@@ -494,7 +536,7 @@ const POSSystem = () => {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Invoice - ${DATABASE.storeInfo.name}</title>
+  <title>Invoice - ${storeInfo.name}</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
     .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #4f46e5; padding-bottom: 20px; }
@@ -517,12 +559,12 @@ const POSSystem = () => {
 </head>
 <body>
   <div class="header">
-    <div class="logo">${DATABASE.storeInfo.name}</div>
-    <div class="tagline">${DATABASE.storeInfo.tagline}</div>
+    <div class="logo">${storeInfo.name}</div>
+    <div class="tagline">${storeInfo.tagline}</div>
     <div class="store-info">
-      <div>${DATABASE.storeInfo.address}</div>
-      <div>Phone: ${DATABASE.storeInfo.phone} | Email: ${DATABASE.storeInfo.email}</div>
-      <div>Website: ${DATABASE.storeInfo.website} | Tax ID: ${DATABASE.storeInfo.taxId}</div>
+      <div>${storeInfo.address}</div>
+      <div>Phone: ${storeInfo.phone} | Email: ${storeInfo.email}</div>
+      <div>Website: ${storeInfo.website} | Tax ID: ${storeInfo.taxId}</div>
     </div>
   </div>
 
@@ -537,10 +579,10 @@ const POSSystem = () => {
     
     <div class="invoice-info">
       <div class="section-title">Invoice Details:</div>
-      <div><strong>Invoice #:</strong> ${saleData.id}</div>
+      <div><strong>Invoice #:</strong> ${saleData.invoiceId}</div>
       <div><strong>Date:</strong> ${currentDate.toLocaleDateString()}</div>
       <div><strong>Time:</strong> ${currentDate.toLocaleTimeString()}</div>
-      <div><strong>Cashier:</strong> ${currentUser.username}</div>
+      <div><strong>Cashier:</strong> ${currentUser ? currentUser.username : 'System'}</div>
     </div>
   </div>
 
@@ -603,167 +645,149 @@ const POSSystem = () => {
   ` : ''}
 
   <div class="footer">
-    <div>Thank you for shopping with ${DATABASE.storeInfo.name}!</div>
-    <div>For support, please contact us at ${DATABASE.storeInfo.phone}</div>
+    <div>Thank you for shopping with ${storeInfo.name}!</div>
+    <div>For support, please contact us at ${storeInfo.phone}</div>
   </div>
 </body>
 </html>`;
   };
 
-  // Download PDF bill
   const downloadBillPDF = (saleData) => {
     const billHTML = generateBillHTML(saleData);
     const blob = new Blob([billHTML], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `invoice-${saleData.id}-${new Date().toISOString().split('T')[0]}.html`;
+    a.download = `invoice-${saleData.invoiceId}-${new Date().toISOString().split('T')[0]}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  // Add new product
-  const addProduct = () => {
-    if (!newProduct.name || !newProduct.receivedPrice || !newProduct.sellingPrice) {
-      alert('Please fill in all required fields');
-      return;
+  const addProduct = async () => {
+    try {
+      const categoryObj = categories.find(cat => cat.name === newProduct.category);
+      
+      if (!categoryObj) {
+        throw new Error('Invalid category selected');
+      }
+
+      const productData = {
+        name: newProduct.name,
+        description: newProduct.description,
+        receivedPrice: parseFloat(newProduct.receivedPrice),
+        sellingPrice: parseFloat(newProduct.sellingPrice),
+        stock: parseInt(newProduct.stock),
+        barcode: newProduct.barcode,
+        imageUrl: newProduct.imageUrl,
+        categoryId: categoryObj.id
+      };
+
+      await api.createProduct(productData);
+      await fetchProducts();
+      setNewProduct({
+        name: '',
+        receivedPrice: '',
+        sellingPrice: '',
+        description: '',
+        stock: '',
+        category: '',
+        barcode: '',
+        imageUrl: ''
+      });
+    } catch (error) {
+      console.error('Error adding product:', error);
+      alert('Failed to add product. Please try again.');
     }
-
-    const product = {
-      id: products.length + 1,
-      ...newProduct,
-      receivedPrice: parseFloat(newProduct.receivedPrice),
-      sellingPrice: parseFloat(newProduct.sellingPrice),
-      stock: parseInt(newProduct.stock) || 0,
-      barcode: newProduct.barcode || `${Date.now()}`
-    };
-
-    setProducts(prev => [...prev, product]);
-    setNewProduct({
-      name: '',
-      receivedPrice: '',
-      sellingPrice: '',
-      description: '',
-      stock: '',
-      category: 'smartphones',
-      barcode: '',
-      image: ''
-    });
-    alert('Product added successfully!');
   };
 
-  // Start editing a product
+  const saveEditedProduct = async () => {
+    try {
+      const categoryObj = categories.find(cat => cat.name === editingProduct.category);
+      
+      if (!categoryObj) {
+        throw new Error('Invalid category selected');
+      }
+
+      const productData = {
+        name: editingProduct.name,
+        description: editingProduct.description,
+        receivedPrice: parseFloat(editingProduct.receivedPrice),
+        sellingPrice: parseFloat(editingProduct.sellingPrice),
+        stock: parseInt(editingProduct.stock),
+        barcode: editingProduct.barcode,
+        imageUrl: editingProduct.imageUrl,
+        categoryId: categoryObj.id
+      };
+
+      await api.updateProduct(editingProductId, productData);
+      await fetchProducts();
+      cancelEditing();
+    } catch (error) {
+      console.error('Error updating product:', error);
+      alert('Failed to update product. Please try again.');
+    }
+  };
+
+  const deleteProduct = async (id) => {
+    try {
+      await api.deleteProduct(id);
+      await fetchProducts();
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      alert('Failed to delete product. Please try again.');
+    }
+  };
+
   const startEditing = (product) => {
     setEditingProductId(product.id);
     setEditingProduct({ ...product });
   };
 
-  // Save edited product
-  const saveEditedProduct = () => {
-    if (!editingProduct) return;
-    
-    const updatedProduct = {
-      ...editingProduct,
-      receivedPrice: parseFloat(editingProduct.receivedPrice),
-      sellingPrice: parseFloat(editingProduct.sellingPrice),
-      stock: parseInt(editingProduct.stock)
-    };
-    
-    setProducts(prev =>
-      prev.map(p => 
-        p.id === editingProductId ? updatedProduct : p
-      )
-    );
-    
-    setEditingProductId(null);
-    setEditingProduct(null);
-    alert('Product updated successfully!');
-  };
-
-  // Cancel editing
   const cancelEditing = () => {
     setEditingProductId(null);
     setEditingProduct(null);
   };
 
-  // Filter products for search
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.barcode.includes(searchTerm) ||
     product.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Filter by category
   const getProductsByCategory = () => {
     if (selectedCategory === 'all') return filteredProducts;
     return filteredProducts.filter(p => p.category === selectedCategory);
   };
 
-  // Handle barcode scanning
-  const handleBarcodeScan = (e) => {
+  const handleBarcodeScan = async (e) => {
     e.preventDefault();
-    if (!barcodeInput) return;
-    
-    const product = products.find(p => p.barcode === barcodeInput);
-    if (product) {
-      addToCart(product);
+    try {
+      const response = await api.getProductByBarcode(barcodeInput);
+      addToCart(response.data);
       setBarcodeInput('');
-    } else {
+    } catch (error) {
       alert('Product not found!');
     }
   };
 
-  // Filter sales by search term
   const filteredSales = sales.filter(sale =>
     sale.id.toLowerCase().includes(salesSearchTerm.toLowerCase()) ||
     (sale.customerInfo?.name || '').toLowerCase().includes(salesSearchTerm.toLowerCase()) ||
     (sale.customerInfo?.phone || '').includes(salesSearchTerm)
   );
 
-  // Get sales data for charts with date filtering
   const getSalesChartData = () => {
-    let startDate, endDate;
-    
-    if (dateFilter.analyticsStartDate && dateFilter.analyticsEndDate) {
-      startDate = new Date(dateFilter.analyticsStartDate);
-      endDate = new Date(dateFilter.analyticsEndDate);
-    } else {
-      endDate = new Date();
-      startDate = new Date();
-      startDate.setDate(startDate.getDate() - 6);
-    }
-
-    const dateArray = [];
-    const currentDate = new Date(startDate);
-    
-    while (currentDate <= endDate) {
-      const dateStr = currentDate.toISOString().split('T')[0];
-      const daySales = sales.filter(sale => sale.date === dateStr);
-      const total = daySales.reduce((sum, sale) => sum + sale.total, 0);
-      const profit = daySales.reduce((sum, sale) => sum + sale.profit, 0);
-      
-      dateArray.push({
-        date: currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        sales: total,
-        profit: profit,
-        transactions: daySales.length
-      });
-      
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    return dateArray;
+    if (!analyticsData?.revenueTrend) return [];
+    return analyticsData.revenueTrend;
   };
 
-  // Get today's sales
   const getTodaySales = () => {
     const today = new Date().toISOString().split('T')[0];
     return sales.filter(sale => sale.date === today);
   };
 
-  // Get filtered sales by date range
   const getFilteredSales = () => {
     let filtered = sales;
 
@@ -780,39 +804,17 @@ const POSSystem = () => {
     return filtered;
   };
 
-  // Get category sales data
   const getCategorySalesData = () => {
-    const categoryData = {};
-    
-    sales.forEach(sale => {
-      sale.items.forEach(item => {
-        const product = products.find(p => p.id === item.productId);
-        const category = product?.category || 'custom';
-        
-        if (!categoryData[category]) {
-          categoryData[category] = { revenue: 0, quantity: 0 };
-        }
-        
-        categoryData[category].revenue += item.unitPrice * item.quantity;
-        categoryData[category].quantity += item.quantity;
-      });
-    });
-
-    return Object.entries(categoryData).map(([category, data]) => ({
-      category: category.charAt(0).toUpperCase() + category.slice(1),
-      revenue: data.revenue,
-      quantity: data.quantity
-    }));
+    if (!analyticsData?.categorySales) return [];
+    return analyticsData.categorySales;
   };
 
-  // Initialize return process
   const initReturn = (sale) => {
     setSaleToReturn(sale);
     setReturnItems(sale.items.map(item => ({ ...item, returnQty: 0 })));
     setShowReturnModal(true);
   };
 
-  // Update return quantity
   const updateReturnQty = (index, quantity) => {
     setReturnItems(prev => 
       prev.map((item, i) => 
@@ -821,63 +823,8 @@ const POSSystem = () => {
     );
   };
 
-  // Process return
-  const processReturn = () => {
-    const validReturns = returnItems.filter(item => item.returnQty > 0);
-    if (validReturns.length === 0) {
-      alert('No items selected for return');
-      return;
-    }
-
-    const returnObj = {
-      id: `RTN-${Date.now()}`,
-      originalSaleId: saleToReturn.id,
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString(),
-      items: validReturns.map(item => ({
-        productId: item.productId,
-        productName: item.productName,
-        quantity: item.returnQty,
-        unitPrice: item.unitPrice,
-        reason: returnReason
-      })),
-      totalRefund: validReturns.reduce((sum, item) => sum + (item.unitPrice * item.returnQty), 0),
-      cashier: currentUser.username
-    };
-
-    // Create a return entry (marked as return)
-    setSales(prev => [...prev, {
-      ...saleToReturn,
-      id: returnObj.id,
-      total: -returnObj.totalRefund,
-      profit: -validReturns.reduce((sum, item) => {
-        const product = products.find(p => p.id === item.productId);
-        return sum + ((item.unitPrice - (product?.receivedPrice || 0)) * item.returnQty);
-      }, 0),
-      isReturn: true,
-      returnReason: returnReason
-    }]);
-
-    // Restock returned items
-    setProducts(prev => 
-      prev.map(product => {
-        const returnItem = validReturns.find(ri => ri.productId === product.id);
-        if (returnItem) {
-          return { ...product, stock: product.stock + returnItem.returnQty };
-        }
-        return product;
-      })
-    );
-
-    alert(`Return processed successfully! Refund amount: ${returnObj.totalRefund.toFixed(2)}`);
-    setShowReturnModal(false);
-    setReturnReason('');
-  };
-
-  // Colors for pie chart
   const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#06b6d4'];
 
-  // Login screen
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 flex items-center justify-center">
@@ -923,7 +870,6 @@ const POSSystem = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hidden file inputs */}
       <input
         type="file"
         ref={fileInputRef}
@@ -939,7 +885,6 @@ const POSSystem = () => {
         className="hidden"
       />
 
-      {/* Header */}
       <header className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
         <div className="px-6 py-4">
           <div className="flex justify-between items-center">
@@ -952,10 +897,12 @@ const POSSystem = () => {
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="font-semibold">{currentUser.username}</p>
-                <p className="text-sm text-indigo-200 capitalize">{currentUser.role}</p>
-              </div>
+              {currentUser && (
+                <div className="text-right">
+                  <p className="font-semibold">{currentUser.username}</p>
+                  <p className="text-sm text-indigo-200 capitalize">{currentUser.role}</p>
+                </div>
+              )}
               <button
                 onClick={handleLogout}
                 className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-all duration-300 flex items-center"
@@ -969,7 +916,6 @@ const POSSystem = () => {
       </header>
 
       <div className="flex">
-        {/* Sidebar */}
         <aside className="w-64 bg-white shadow-lg min-h-screen">
           <nav className="p-6">
             <div className="space-y-2">
@@ -1024,12 +970,9 @@ const POSSystem = () => {
           </nav>
         </aside>
 
-        {/* Main Content */}
         <main className="flex-1 p-6">
-          {/* Enhanced Billing Tab */}
           {activeTab === 'billing' && (
             <div className="space-y-6">
-              {/* Customer Information */}
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
                   <User className="w-5 h-5 mr-2" />
@@ -1067,7 +1010,6 @@ const POSSystem = () => {
                 </div>
               </div>
 
-              {/* Barcode Scanner */}
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
                   <Barcode className="w-5 h-5 mr-2" />
@@ -1090,7 +1032,6 @@ const POSSystem = () => {
                 </form>
               </div>
 
-              {/* Category Filter */}
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
                   <Filter className="w-5 h-5 mr-2" />
@@ -1107,24 +1048,24 @@ const POSSystem = () => {
                   >
                     All Categories
                   </button>
-                  {categories.map(category => (
+                  
+                  {categories.map(cat => (
                     <button
-                      key={category}
-                      onClick={() => setSelectedCategory(category)}
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.name)}
                       className={`px-4 py-2 rounded-lg capitalize ${
-                        selectedCategory === category
+                        selectedCategory === cat.name
                           ? 'bg-indigo-600 text-white'
                           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       }`}
-                      >
-                      {category}
+                    >
+                      {cat.name}
                     </button>
                   ))}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Product Selection */}
                 <div className="lg:col-span-2">
                   <div className="bg-white rounded-xl shadow-lg p-6">
                     <div className="flex items-center justify-between mb-6">
@@ -1158,9 +1099,9 @@ const POSSystem = () => {
                           className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 hover:shadow-md transition-all duration-300 cursor-pointer"
                         >
                           <div className="mb-3 h-40 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
-                            {product.image ? (
+                            {product.imageUrl ? (
                               <img 
-                                src={product.image} 
+                                src={product.imageUrl} 
                                 alt={product.name} 
                                 className="object-cover w-full h-full"
                                 onError={(e) => {
@@ -1170,7 +1111,7 @@ const POSSystem = () => {
                               />
                             ) : null}
                             <div 
-                              className={`w-full h-full flex items-center justify-center ${product.image ? 'hidden' : ''}`}
+                              className={`w-full h-full flex items-center justify-center ${product.imageUrl ? 'hidden' : ''}`}
                             >
                               <Package className="w-12 h-12 text-gray-400" />
                             </div>
@@ -1199,7 +1140,6 @@ const POSSystem = () => {
                   </div>
                 </div>
 
-                {/* Enhanced Cart */}
                 <div className="bg-white rounded-xl shadow-lg p-6">
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-gray-800">Cart</h2>
@@ -1252,7 +1192,6 @@ const POSSystem = () => {
                             </div>
                           </div>
                           
-                          {/* Per-Item Discount Controls */}
                           <div className="flex items-center space-x-2 mt-2">
                             <select
                               value={item.discountType}
@@ -1289,7 +1228,6 @@ const POSSystem = () => {
 
                   {cart.length > 0 && (
                     <div className="border-t pt-4 space-y-4">
-                      {/* Global Discount Section */}
                       <div className="grid grid-cols-3 gap-2">
                         <select
                           value={discountType}
@@ -1311,7 +1249,6 @@ const POSSystem = () => {
                         </div>
                       </div>
 
-                      {/* Notes */}
                       <textarea
                         placeholder="Bill notes (optional)"
                         value={billNotes}
@@ -1320,7 +1257,6 @@ const POSSystem = () => {
                         rows="2"
                       />
 
-                      {/* Bill Summary */}
                       <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                         <div className="flex justify-between text-sm">
                           <span>Subtotal:</span>
@@ -1347,7 +1283,7 @@ const POSSystem = () => {
                       <div className="grid grid-cols-2 gap-3">
                         <button
                           onClick={() => printBill({
-                            id: `INV-${Date.now()}`,
+                            invoiceId: `INV-${Date.now()}`,
                             date: new Date().toISOString().split('T')[0],
                             time: new Date().toLocaleTimeString(),
                             items: cart,
@@ -1355,7 +1291,7 @@ const POSSystem = () => {
                             profit: getCartTotals().profit,
                             customerInfo,
                             notes: billNotes,
-                            cashier: currentUser.username
+                            cashier: currentUser ? currentUser.username : 'System'
                           })}
                           className="bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold flex items-center justify-center"
                         >
@@ -1378,10 +1314,8 @@ const POSSystem = () => {
             </div>
           )}
 
-          {/* Inventory Tab */}
           {activeTab === 'inventory' && (
             <div className="space-y-6">
-              {/* Add Product Form */}
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">Add New Product</h2>
                 
@@ -1431,8 +1365,11 @@ const POSSystem = () => {
                     onChange={(e) => setNewProduct(prev => ({ ...prev, category: e.target.value }))}
                     className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                   >
+                    <option value="">Select Category</option>
                     {categories.map(cat => (
-                      <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+                      <option key={cat.id} value={cat.name}>
+                        {cat.name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -1473,22 +1410,21 @@ const POSSystem = () => {
                   </button>
                 </div>
 
-                {/* Image Upload Section */}
                 <div className="mt-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Product Image
                   </label>
                   
-                  {newProduct.image ? (
+                  {newProduct.imageUrl ? (
                     <div className="flex items-center space-x-4 mb-4">
                       <div className="relative">
                         <img 
-                          src={newProduct.image} 
+                          src={newProduct.imageUrl} 
                           alt="Product preview" 
                           className="w-24 h-24 object-contain border rounded-lg"
                         />
                         <button
-                          onClick={() => setNewProduct(prev => ({ ...prev, image: '' }))}
+                          onClick={() => setNewProduct(prev => ({ ...prev, imageUrl: '' }))}
                           className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                         >
                           <X className="w-4 h-4" />
@@ -1519,7 +1455,6 @@ const POSSystem = () => {
                 </div>
               </div>
 
-              {/* Products List */}
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">Current Inventory</h2>
                 
@@ -1563,15 +1498,15 @@ const POSSystem = () => {
                             <td className="px-4 py-4">
                               {isEditing ? (
                                 <div className="flex flex-col items-center">
-                                  {editingProduct.image ? (
+                                  {editingProduct.imageUrl ? (
                                     <div className="relative mb-2">
                                       <img 
-                                        src={editingProduct.image} 
+                                        src={editingProduct.imageUrl} 
                                         alt="Product preview" 
                                         className="w-16 h-16 object-contain border rounded"
                                       />
                                       <button
-                                        onClick={() => setEditingProduct(prev => ({ ...prev, image: '' }))}
+                                        onClick={() => setEditingProduct(prev => ({ ...prev, imageUrl: '' }))}
                                         className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                                       >
                                         <X className="w-3 h-3" />
@@ -1585,12 +1520,12 @@ const POSSystem = () => {
                                     disabled={uploadingImage}
                                   >
                                     <Image className="w-4 h-4 mr-1" />
-                                    {uploadingImage ? 'Uploading...' : (editingProduct.image ? 'Change' : 'Upload')}
+                                    {uploadingImage ? 'Uploading...' : (editingProduct.imageUrl ? 'Change' : 'Upload')}
                                   </button>
                                 </div>
-                              ) : product.image ? (
+                              ) : product.imageUrl ? (
                                 <img 
-                                  src={product.image} 
+                                  src={product.imageUrl} 
                                   alt={product.name} 
                                   className="w-16 h-16 object-contain mx-auto"
                                   onError={(e) => {
@@ -1604,7 +1539,7 @@ const POSSystem = () => {
                                   <span className="text-xs">No image</span>
                                 </div>
                               )}
-                              {product.image && (
+                              {product.imageUrl && (
                                 <div className="text-center text-gray-400 hidden">
                                   <Image className="w-8 h-8 mx-auto" />
                                   <span className="text-xs">Error loading</span>
@@ -1630,8 +1565,11 @@ const POSSystem = () => {
                                   onChange={e => setEditingProduct({...editingProduct, category: e.target.value})}
                                   className="w-full px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                                 >
+                                  <option value="">Select Category</option>
                                   {categories.map(cat => (
-                                    <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+                                    <option key={cat.id} value={cat.name}>
+                                      {cat.name}
+                                    </option>
                                   ))}
                                 </select>
                               ) : (
@@ -1706,12 +1644,20 @@ const POSSystem = () => {
                                   </button>
                                 </div>
                               ) : (
-                                <button
-                                  onClick={() => startEditing(product)}
-                                  className="text-indigo-600 hover:text-indigo-800"
+                                <div className="flex space-x-2">
+                                  <button
+                                    onClick={() => startEditing(product)}
+                                    className="text-indigo-600 hover:text-indigo-800"
                                   >
-                                  <Edit className="w-5 h-5" />
-                                </button>
+                                    <Edit className="w-5 h-5" />
+                                  </button>
+                                  <button
+                                    onClick={() => deleteProduct(product.id)}
+                                    className="text-red-600 hover:text-red-800"
+                                  >
+                                    <Trash2 className="w-5 h-5" />
+                                  </button>
+                                </div>
                               )}
                             </td>
                           </tr>
@@ -1724,12 +1670,19 @@ const POSSystem = () => {
             </div>
           )}
 
-          {/* Analytics Tab */}
           {activeTab === 'analytics' && (
             <div className="space-y-6">
-              {/* Date Range Filter for Analytics */}
               <div className="bg-white rounded-xl shadow-lg p-6">
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">Analytics Dashboard</h2>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold text-gray-800">Analytics Dashboard</h2>
+                  <button 
+                    onClick={fetchAnalytics}
+                    className="flex items-center text-indigo-600 hover:text-indigo-800"
+                  >
+                    <RefreshCw className="w-5 h-5 mr-1" />
+                    Refresh
+                  </button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
@@ -1752,7 +1705,6 @@ const POSSystem = () => {
                 </div>
               </div>
 
-              {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="bg-white rounded-xl shadow-lg p-6">
                   <div className="flex items-center justify-between">
@@ -1810,7 +1762,6 @@ const POSSystem = () => {
                 </div>
               </div>
 
-              {/* Charts */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white rounded-xl shadow-lg p-6">
                   <h3 className="text-xl font-bold text-gray-800 mb-4">Revenue Trend</h3>
@@ -1839,7 +1790,6 @@ const POSSystem = () => {
                 </div>
               </div>
 
-              {/* Category Performance */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white rounded-xl shadow-lg p-6">
                   <h3 className="text-xl font-bold text-gray-800 mb-4">Sales by Category</h3>
@@ -1850,7 +1800,7 @@ const POSSystem = () => {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ category, value }) => `${category}: ${value.toFixed(0)}`}
+                        label={({ category, revenue }) => `${category}: $${revenue.toFixed(0)}`}
                         outerRadius={100}
                         fill="#8884d8"
                         dataKey="revenue"
@@ -1859,38 +1809,47 @@ const POSSystem = () => {
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => [`${value.toFixed(2)}`, 'Revenue']} />
+                      <Tooltip formatter={(value) => [`$${value.toFixed(2)}`, 'Revenue']} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-6">
-                  <h3 className="text-xl font-bold text-gray-800 mb-4">Daily Performance Summary</h3>
-                  <div className="space-y-4">
-                    {getSalesChartData().slice(-5).reverse().map(day => (
-                      <div key={day.date} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <p className="font-semibold text-gray-800">{day.date}</p>
-                          <p className="text-sm text-gray-600">{day.transactions} transactions</p>
+                {analyticsData?.topProducts && analyticsData.topProducts.length > 0 && (
+                  <div className="bg-white rounded-xl shadow-lg p-6">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4">Top Selling Products</h3>
+                    <div className="space-y-4">
+                      {analyticsData.topProducts.map((product, index) => (
+                        <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="font-semibold text-gray-800">{product.name}</p>
+                            <p className="text-sm text-gray-600">Category: {product.category}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold text-green-600">Sold: {product.quantity}</p>
+                            <p className="text-sm text-blue-600">Revenue: ${product.revenue.toFixed(2)}</p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-green-600">${day.sales.toFixed(2)}</p>
-                          <p className="text-sm text-blue-600">Profit: ${day.profit.toFixed(2)}</p>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* Sales History Tab */}
           {activeTab === 'sales' && (
             <div className="space-y-6">
-              {/* Search and Date Filters */}
               <div className="bg-white rounded-xl shadow-lg p-6">
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">Sales History</h2>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold text-gray-800">Sales History</h2>
+                  <button 
+                    onClick={fetchSales}
+                    className="flex items-center text-indigo-600 hover:text-indigo-800"
+                  >
+                    <RefreshCw className="w-5 h-5 mr-1" />
+                    Refresh
+                  </button>
+                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="relative">
@@ -1936,22 +1895,13 @@ const POSSystem = () => {
                 </div>
               </div>
 
-              {/* Sales List */}
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-bold text-gray-800">
-                    Sales Records ({getFilteredSales().filter(sale => 
-                      sale.id.toLowerCase().includes(salesSearchTerm.toLowerCase()) ||
-                      (sale.customerInfo?.name || '').toLowerCase().includes(salesSearchTerm.toLowerCase()) ||
-                      (sale.customerInfo?.phone || '').includes(salesSearchTerm)
-                    ).length} found)
+                    Sales Records ({filteredSales.length} found)
                   </h3>
                   <div className="text-lg font-semibold text-green-600">
-                    Total: ${getFilteredSales().filter(sale => 
-                      sale.id.toLowerCase().includes(salesSearchTerm.toLowerCase()) ||
-                      (sale.customerInfo?.name || '').toLowerCase().includes(salesSearchTerm.toLowerCase()) ||
-                      (sale.customerInfo?.phone || '').includes(salesSearchTerm)
-                    ).reduce((sum, sale) => sum + sale.total, 0).toFixed(2)}
+                    Total: ${filteredSales.reduce((sum, sale) => sum + sale.total, 0).toFixed(2)}
                   </div>
                 </div>
                 
@@ -1960,7 +1910,7 @@ const POSSystem = () => {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Invoice ID</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Date & Time</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Date</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Customer</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Items</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Total</th>
@@ -1969,19 +1919,14 @@ const POSSystem = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {getFilteredSales().filter(sale => 
-                        sale.id.toLowerCase().includes(salesSearchTerm.toLowerCase()) ||
-                        (sale.customerInfo?.name || '').toLowerCase().includes(salesSearchTerm.toLowerCase()) ||
-                        (sale.customerInfo?.phone || '').includes(salesSearchTerm)
-                      ).map(sale => (
+                      {filteredSales.map(sale => (
                         <tr key={sale.id} className="hover:bg-gray-50">
                           <td className="px-4 py-4 text-sm font-medium text-gray-900 font-mono">
                             {sale.isReturn && <span className="text-red-600 text-xs">RETURN </span>}
                             {sale.id}
                           </td>
                           <td className="px-4 py-4 text-sm text-gray-900">
-                            <div>{new Date(sale.date).toLocaleDateString()}</div>
-                            {sale.time && <div className="text-xs text-gray-500">{sale.time}</div>}
+                            {new Date(sale.date).toLocaleDateString()}
                           </td>
                           <td className="px-4 py-4 text-sm text-gray-900">
                             <div>{sale.customerInfo?.name || 'Walk-in Customer'}</div>
@@ -2033,11 +1978,7 @@ const POSSystem = () => {
                     </tbody>
                   </table>
                   
-                  {getFilteredSales().filter(sale => 
-                    sale.id.toLowerCase().includes(salesSearchTerm.toLowerCase()) ||
-                    (sale.customerInfo?.name || '').toLowerCase().includes(salesSearchTerm.toLowerCase()) ||
-                    (sale.customerInfo?.phone || '').includes(salesSearchTerm)
-                  ).length === 0 && (
+                  {filteredSales.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
                       <Calendar className="w-12 h-12 mx-auto mb-2 text-gray-300" />
                       <p>No sales found for the current filters</p>
@@ -2050,7 +1991,6 @@ const POSSystem = () => {
         </main>
       </div>
 
-      {/* Custom Item Modal */}
       {showCustomItemForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-96 max-w-full mx-4">
@@ -2116,7 +2056,6 @@ const POSSystem = () => {
         </div>
       )}
 
-      {/* Sale Details Modal */}
       {showSaleDetails && selectedSale && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-4xl mx-4 max-h-screen overflow-y-auto">
@@ -2133,7 +2072,6 @@ const POSSystem = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              {/* Sale Information */}
               <div className="space-y-4">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
@@ -2148,10 +2086,6 @@ const POSSystem = () => {
                     <div className="flex justify-between">
                       <span className="text-gray-600">Date:</span>
                       <span>{new Date(selectedSale.date).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Time:</span>
-                      <span>{selectedSale.time || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Cashier:</span>
@@ -2170,7 +2104,6 @@ const POSSystem = () => {
                   </div>
                 </div>
 
-                {/* Customer Information */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
                     <User className="w-5 h-5 mr-2" />
@@ -2197,7 +2130,6 @@ const POSSystem = () => {
                 </div>
               </div>
 
-              {/* Financial Summary */}
               <div className="space-y-4">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
@@ -2231,7 +2163,6 @@ const POSSystem = () => {
               </div>
             </div>
 
-            {/* Items List */}
             <div className="mb-6">
               <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
                 <Package className="w-5 h-5 mr-2" />
@@ -2266,7 +2197,6 @@ const POSSystem = () => {
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowSaleDetails(false)}
@@ -2286,7 +2216,6 @@ const POSSystem = () => {
         </div>
       )}
 
-      {/* Return Modal */}
       {showReturnModal && saleToReturn && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-4xl mx-4 max-h-screen overflow-y-auto">
@@ -2383,7 +2312,6 @@ const POSSystem = () => {
         </div>
       )}
 
-      {/* Upload Progress Indicator */}
       {uploadingImage && (
         <div className="fixed bottom-4 right-4 bg-white shadow-lg rounded-lg p-4 flex items-center">
           <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mr-3"></div>
