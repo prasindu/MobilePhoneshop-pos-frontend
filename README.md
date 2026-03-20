@@ -87,7 +87,7 @@ npm run dev
 ```bash
 npm run build
 ```
-###🔄 How Offline Sync Works
+## 🔄 How Offline Sync Works
 1. On login, the app downloads the latest product catalog and caches it in the browser's IndexedDB.
 
 2. If the network drops (navigator.onLine === false or ERR_NETWORK), the app switches to Offline Mode.
@@ -96,9 +96,9 @@ npm run build
 
 4. An event listener (window.addEventListener('online')) detects when the connection is back and silently pushes the pending sales to the Spring Boot backend.
 
-###🤝 Contributing
+## 🤝 Contributing
 Contributions, issues, and feature requests are welcome! Feel free to check the issues page.
 
-###📄 License
+## 📄 License
 This project is licensed under the MIT License.
   
