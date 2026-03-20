@@ -18,24 +18,20 @@ A modern, high-performance, and Offline-Capable Point of Sale (POS) system built
 * **🌓 Modern UI/UX:** Fully responsive design with Dark/Light theme toggles and smooth loading animations.
 
 ## 📸 Screenshots
-<img width="1918" height="911" alt="Screenshot 2026-03-20 155508" src="https://github.com/user-attachments/assets/e653688f-0fe7-4b2a-80ba-657ccb9427c7" />
-
 
 1. ### Billing Dashboard
 
-
-
-  <img width="1900" height="909" alt="Screenshot 2026-03-20 155806" src="https://github.com/user-attachments/assets/b4eb521b-5b0c-4f3c-a019-eee0e06a15de" />
-
+   
+<img width="1918" height="911" alt="Screenshot 2026-03-20 155508" src="https://github.com/user-attachments/assets/e653688f-0fe7-4b2a-80ba-657ccb9427c7" />
 
 2. ### Inventory Management
 
+  <img width="1900" height="909" alt="Screenshot 2026-03-20 155806" src="https://github.com/user-attachments/assets/b4eb521b-5b0c-4f3c-a019-eee0e06a15de" />
 
+3. ### Analytics & Reports
 
   <img width="1902" height="910" alt="Screenshot 2026-03-20 155838" src="https://github.com/user-attachments/assets/6c1d81f7-37aa-4695-bf24-588789cfb92b" />
 
-
-3. ### Analytics & Reports
 
 ## 🛠️ Tech Stack
 
