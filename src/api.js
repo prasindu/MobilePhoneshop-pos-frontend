@@ -1,7 +1,7 @@
 // src/services/api.js
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8080/api';
+const API_URL = 'https://pos-backend-app-bmgcc4cud0edeufw.southeastasia-01.azurewebsites.net/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -11,17 +11,20 @@ const api = axios.create({
 });
 
 // Add request interceptor to inject token
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
 
 export default {
-
-  
   // Authentication
   login: (credentials) => api.post('/auth/login', credentials),
   logout: () => api.post('/auth/logout'),
@@ -33,14 +36,11 @@ export default {
   createProduct: (product) => api.post('/products', product),
   updateProduct: (id, product) => api.put(`/products/${id}`, product),
   deleteProduct: (id) => api.delete(`/products/${id}`),
-// In your api.js (axios instance)
-updateStock: (productId, quantity, increase) => 
+  updateStock: (productId, quantity, increase) => 
     api.put(`/products/${productId}/stock`, null, { 
       params: { quantity, increase } 
     }),
 
-    // src/services/api.js
-createSale: (saleData) => api.post('/sales', saleData),
   // Categories
   getCategories: () => api.get('/categories'),
   createCategory: (category) => api.post('/categories', category),
@@ -51,14 +51,11 @@ createSale: (saleData) => api.post('/sales', saleData),
   getSales: (params) => api.get('/sales', { params }),
   getSaleById: (id) => api.get(`/sales/${id}`),
   getSaleByInvoice: (invoiceId) => api.get(`/sales/invoice/${invoiceId}`),
-  
-createSale: (saleData) => api.post('/sales', saleData),
+  createSale: (saleData) => api.post('/sales', saleData), // Removed the duplicate!
   processReturn: (returnData) => api.post('/sales/return', returnData),
   getTodaySales: () => api.get('/sales/today'),
 
   // Analytics
   getAnalytics: (params) => api.get('/analytics', { params }),
   getDashboardAnalytics: () => api.get('/analytics/dashboard'),
-
-  
 };
