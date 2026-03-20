@@ -1,4 +1,4 @@
-<img width="1918" height="911" alt="Screenshot 2026-03-20 155508" src="https://github.com/user-attachments/assets/64c894b5-202c-4e20-88af-70736a5cef76" /># 🛒 MobileHub POS - Advanced Point of Sale System
+# 🛒 MobileHub POS - Advanced Point of Sale System
 
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
@@ -19,13 +19,17 @@ A modern, high-performance, and Offline-Capable Point of Sale (POS) system built
 
 ## 📸 Screenshots
 <img width="1918" height="911" alt="Screenshot 2026-03-20 155508" src="https://github.com/user-attachments/assets/e653688f-0fe7-4b2a-80ba-657ccb9427c7" />
-* Billing Dashboard
-* 
+** Billing Dashboard**
+
+
+
   <img width="1900" height="909" alt="Screenshot 2026-03-20 155806" src="https://github.com/user-attachments/assets/b4eb521b-5b0c-4f3c-a019-eee0e06a15de" />
-* Inventory Management
+** Inventory Management**
+
+
 
   <img width="1902" height="910" alt="Screenshot 2026-03-20 155838" src="https://github.com/user-attachments/assets/6c1d81f7-37aa-4695-bf24-588789cfb92b" />
-* Analytics & Reports
+** Analytics & Reports**
 
 ## 🛠️ Tech Stack
 
