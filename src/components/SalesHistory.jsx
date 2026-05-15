@@ -134,7 +134,8 @@ const SalesHistory = ({ isDarkMode }) => {
                 <td className="p-3">{safelyGetDateString(sale.saleDate || sale.date)}</td>
                 <td className="p-3">{sale.customerName || sale.customerInfo?.name || 'Walk-in'}</td>
                 <td className="p-3">{sale.items?.length || 0}</td>
-                <td className={`p-3 font-bold ${sale.total < 0 ? 'text-red-500':'text-green-500'}`}>${Math.abs(sale.total).toFixed(2)}</td>
+                {/* 💡 මෙතන $ සලකුණ වෙනුවට Rs. යෙදුවා */}
+                <td className={`p-3 font-bold ${sale.total < 0 ? 'text-red-500':'text-green-500'}`}>Rs. {Math.abs(sale.total).toFixed(2)}</td>
                 <td className="p-3 flex space-x-2 justify-center">
                   <button onClick={() => { setSelectedSale(sale); setShowSaleDetails(true); }} className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-600' : 'text-gray-500 hover:bg-gray-200'}`} title="Details"><Eye className="w-5 h-5"/></button>
                   <button onClick={() => handlePrint(sale)} className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'text-blue-400 hover:bg-blue-900/30' : 'text-blue-500 hover:bg-blue-100'}`} title="Print"><Printer className="w-5 h-5"/></button>
@@ -166,13 +167,15 @@ const SalesHistory = ({ isDarkMode }) => {
           <div className={`${bgClass} rounded-2xl p-6 w-[600px] max-h-[85vh] overflow-y-auto shadow-2xl`}>
              <div className="flex justify-between items-center mb-6 border-b pb-4"><h3 className="font-bold text-2xl">Sale Details <span className="text-sm font-mono opacity-50 ml-2">{selectedSale.invoiceId}</span></h3><button onClick={() => setShowSaleDetails(false)} className="p-2 hover:bg-gray-500/20 rounded-full"><X/></button></div>
              <div className={`grid grid-cols-2 gap-4 p-4 rounded-xl mb-6 border ${isDarkMode ? 'bg-indigo-900/20 border-indigo-500/20' : 'bg-indigo-50 border-indigo-100'}`}>
+                {/* 💡 මෙතන $ සලකුණ වෙනුවට Rs. යෙදුවා */}
                 <div><p className="text-indigo-400 text-xs font-bold uppercase mb-1">Customer</p><p className="font-bold text-lg">{selectedSale.customerName || 'Walk-in'}</p></div>
-                <div><p className="text-indigo-400 text-xs font-bold uppercase mb-1">Total</p><p className="font-bold text-xl text-green-500">${Math.abs(selectedSale.total).toFixed(2)}</p></div>
+                <div><p className="text-indigo-400 text-xs font-bold uppercase mb-1">Total</p><p className="font-bold text-xl text-green-500">Rs. {Math.abs(selectedSale.total).toFixed(2)}</p></div>
              </div>
              {/* Simple items table */}
              <table className="w-full text-left">
                 <thead className={tableHeaderClass}><tr><th className="p-2">Item</th><th className="p-2">Qty</th><th className="p-2 text-right">Price</th></tr></thead>
-                <tbody>{selectedSale.items.map((it, idx) => <tr key={idx} className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}><td className="p-2">{it.productName}</td><td className="p-2">{it.quantity}</td><td className="p-2 text-right">${it.unitPrice}</td></tr>)}</tbody>
+                {/* 💡 මෙතන $ සලකුණ වෙනුවට Rs. යෙදුවා */}
+                <tbody>{selectedSale.items.map((it, idx) => <tr key={idx} className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}><td className="p-2">{it.productName}</td><td className="p-2">{it.quantity}</td><td className="p-2 text-right">Rs. {it.unitPrice}</td></tr>)}</tbody>
              </table>
           </div>
         </div>

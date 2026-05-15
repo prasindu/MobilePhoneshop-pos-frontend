@@ -1,6 +1,6 @@
+
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { POSContext } from '../context/POSContext';
-// 💡 Loader2 මෙතැනට අලුතින් එකතු කර ඇත
 import { ShoppingCart, Plus, Minus, Trash2, Printer, Receipt, User, Barcode, Filter, PlusCircle, X, Package, Loader2 } from 'lucide-react';
 import { generateBillHTML, printIframe, downloadPDF } from '../utils/receiptUtils';
 import api from '../api';
@@ -153,8 +153,6 @@ const Billing = ({ isDarkMode }) => {
     return { subtotal, discountAmount, total, profit, totalAfterItemDiscounts };
   };
 
- 
-
   const completeSale = async () => {
     if (cart.length === 0) return showAlert('Cart is empty', 'error');
     
@@ -297,7 +295,7 @@ const Billing = ({ isDarkMode }) => {
                    {p.imageUrl ? <img src={p.imageUrl} className="w-full h-full object-cover" alt={p.name} /> : <Package className="w-8 h-8 text-gray-400" />}
                 </div>
                 <h3 className="font-semibold text-sm line-clamp-1" title={p.name}>{p.name}</h3>
-                <span className="font-bold text-indigo-600 mt-1">${p.sellingPrice}</span>
+                <span className="font-bold text-indigo-600 mt-1">Rs. {p.sellingPrice}</span>
                 <div className="text-xs text-gray-500 mt-2 flex justify-between items-center">
                   <span>{p.barcode}</span>
                   <span className={`px-1.5 py-0.5 rounded font-medium ${p.stock > 5 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>Qty: {p.stock}</span>
@@ -322,10 +320,10 @@ const Billing = ({ isDarkMode }) => {
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <h4 className="font-bold text-sm">{item.name}</h4>
-                      <p className="text-xs text-gray-500">${item.sellingPrice} each</p>
+                      <p className="text-xs text-gray-500">Rs. {item.sellingPrice} each</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-indigo-600">${(discountedPrice * item.quantity).toFixed(2)}</p>
+                      <p className="font-bold text-indigo-600">Rs. {(discountedPrice * item.quantity).toFixed(2)}</p>
                     </div>
                   </div>
                   <div className="flex justify-between items-center mt-3">
@@ -335,7 +333,7 @@ const Billing = ({ isDarkMode }) => {
                       <button onClick={() => updateCartQuantity(item.id, item.quantity + 1)} className="p-1 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded text-indigo-600 dark:text-indigo-400"><Plus className="w-3.5 h-3.5"/></button>
                     </div>
                     <div className="flex items-center gap-1">
-                      <select value={item.discountType} onChange={e => updateItemDiscount(item.id, item.discount, e.target.value)} className={`text-xs border rounded p-1.5 outline-none ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white'}`}><option value="percentage">%</option><option value="fixed">$</option></select>
+                      <select value={item.discountType} onChange={e => updateItemDiscount(item.id, item.discount, e.target.value)} className={`text-xs border rounded p-1.5 outline-none ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white'}`}><option value="percentage">%</option><option value="fixed">Rs.</option></select>
                       <input type="number" value={isNaN(item.discount)?'':item.discount} onChange={e => updateItemDiscount(item.id, parseFloat(e.target.value), item.discountType)} className={`w-14 text-xs border rounded p-1.5 outline-none ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white'}`} placeholder="Dis."/>
                       <button onClick={() => updateCartQuantity(item.id, 0)} className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg ml-1"><Trash2 className="w-4 h-4"/></button>
                     </div>
@@ -350,15 +348,15 @@ const Billing = ({ isDarkMode }) => {
              {cart.length > 0 && (
                <>
                  <div className="flex gap-2">
-                   <select value={discountType} onChange={(e) => setDiscountType(e.target.value)} className={`border rounded-lg p-2 text-sm outline-none ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white'}`}><option value="percentage">% Global Disc</option><option value="fixed">$ Global Disc</option></select>
+                   <select value={discountType} onChange={(e) => setDiscountType(e.target.value)} className={`border rounded-lg p-2 text-sm outline-none ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white'}`}><option value="percentage">% Global Disc</option><option value="fixed">Rs. Global Disc</option></select>
                    <input type="number" value={isNaN(discount)?'':discount} onChange={(e) => setDiscount(parseFloat(e.target.value))} placeholder="Amount" className={`border rounded-lg p-2 text-sm flex-1 outline-none ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white'}`}/>
                  </div>
                  <textarea placeholder="Bill Notes..." value={billNotes} onChange={(e) => setBillNotes(e.target.value)} className={`w-full border rounded-lg p-2 text-sm outline-none ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white'}`} rows="1"/>
                  
                  <div className={`p-4 rounded-xl ${isDarkMode ? 'bg-gray-750 border border-gray-700' : 'bg-indigo-50 border border-indigo-100'}`}>
-                   <div className="flex justify-between text-sm mb-1 text-gray-600 dark:text-gray-400"><span>Subtotal:</span><span className="font-semibold">${getCartTotals().subtotal.toFixed(2)}</span></div>
-                   {getCartTotals().discountAmount > 0 && <div className="flex justify-between text-sm text-red-500 mb-1"><span>Discount:</span><span className="font-semibold">-${getCartTotals().discountAmount.toFixed(2)}</span></div>}
-                   <div className="flex justify-between font-black text-2xl border-t border-indigo-200 dark:border-gray-600 mt-2 pt-2 text-indigo-700 dark:text-indigo-400"><span>Total:</span><span>${getCartTotals().total.toFixed(2)}</span></div>
+                   <div className="flex justify-between text-sm mb-1 text-gray-600 dark:text-gray-400"><span>Subtotal:</span><span className="font-semibold">Rs. {getCartTotals().subtotal.toFixed(2)}</span></div>
+                   {getCartTotals().discountAmount > 0 && <div className="flex justify-between text-sm text-red-500 mb-1"><span>Discount:</span><span className="font-semibold">-Rs. {getCartTotals().discountAmount.toFixed(2)}</span></div>}
+                   <div className="flex justify-between font-black text-2xl border-t border-indigo-200 dark:border-gray-600 mt-2 pt-2 text-indigo-700 dark:text-indigo-400"><span>Total:</span><span>Rs. {getCartTotals().total.toFixed(2)}</span></div>
                  </div>
                  
                  <div className="grid grid-cols-2 gap-3 mt-2">
@@ -399,7 +397,7 @@ const Billing = ({ isDarkMode }) => {
               </div>
               <div className="flex gap-4">
                  <div className="flex-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase">Price ($)</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase">Price (Rs.)</label>
                     <input type="number" value={customItem.price} onChange={(e) => setCustomItem({...customItem, price: e.target.value})} className={`w-full border p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 mt-1 ${isDarkMode ? 'bg-gray-700 border-gray-600' : ''}`} />
                  </div>
                  <div className="w-1/3">

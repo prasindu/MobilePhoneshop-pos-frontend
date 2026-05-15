@@ -1,6 +1,6 @@
 import React, { useState, useContext, useRef } from 'react';
 import { POSContext } from '../context/POSContext';
-import { Plus, X, Edit, Trash2, Image as ImageIcon, Upload, Package, Save } from 'lucide-react';
+import { Plus, X, Edit, Trash2, Image as ImageIcon, Upload, Package, Save, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import api from '../api';
 
@@ -9,7 +9,7 @@ const UPLOAD_PRESET = 'pos-img';
 
 const Inventory = ({ isDarkMode }) => {
   
-const { products, fetchProducts, categories, fetchCategories, showAlert, isProcessing, setIsProcessing } = useContext(POSContext); 
+  const { products, fetchProducts, categories, fetchCategories, showAlert, isProcessing, setIsProcessing } = useContext(POSContext); 
   
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -25,7 +25,6 @@ const { products, fetchProducts, categories, fetchCategories, showAlert, isProce
   const fileInputRef = useRef(null);
   const editFileInputRef = useRef(null);
   
-
   const [newProduct, setNewProduct] = useState({
     name: '', receivedPrice: '', sellingPrice: '', description: '', stock: '', category: '', barcode: '', imageUrl: ''
   });
@@ -203,7 +202,8 @@ const { products, fetchProducts, categories, fetchCategories, showAlert, isProce
                   <td className="p-3">
                     {editingProductId === p.id ? 
                       <input type="number" value={editingProduct.sellingPrice} onChange={e=>setEditingProduct({...editingProduct, sellingPrice: e.target.value})} className={`border p-1 w-20 rounded ${inputBgClass}`}/> 
-                      : <span className="font-bold text-indigo-500">${p.sellingPrice}</span>
+                      /* 💡 මෙතන $ සලකුණ වෙනුවට Rs. යෙදුවා */
+                      : <span className="font-bold text-indigo-500">Rs. {p.sellingPrice}</span>
                     }
                   </td>
                   <td className="p-3">

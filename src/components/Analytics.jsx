@@ -98,11 +98,13 @@ const Analytics = ({ isDarkMode }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className={`${bgClass} rounded-xl shadow-lg p-6 flex items-center justify-between border-l-4 border-green-500`}>
-          <div><p className={`text-sm font-semibold uppercase ${mutedTextClass}`}>{dateFilter.selectedDate || dateFilter.startDate ? 'Filtered Revenue' : "Overall Revenue"}</p><p className="text-2xl font-bold text-green-500">${revenueKPI.toFixed(2)}</p></div>
+          {/* 💡 මෙතන $ සලකුණ වෙනුවට Rs. යෙදුවා */}
+          <div><p className={`text-sm font-semibold uppercase ${mutedTextClass}`}>{dateFilter.selectedDate || dateFilter.startDate ? 'Filtered Revenue' : "Overall Revenue"}</p><p className="text-2xl font-bold text-green-500">Rs. {revenueKPI.toFixed(2)}</p></div>
           <TrendingUp className="w-10 h-10 text-green-500 opacity-50" />
         </div>
         <div className={`${bgClass} rounded-xl shadow-lg p-6 flex items-center justify-between border-l-4 border-blue-500`}>
-          <div><p className={`text-sm font-semibold uppercase ${mutedTextClass}`}>{dateFilter.selectedDate || dateFilter.startDate ? 'Filtered Profit' : "Overall Profit"}</p><p className="text-2xl font-bold text-blue-500">${profitKPI.toFixed(2)}</p></div>
+          {/* 💡 මෙතන $ සලකුණ වෙනුවට Rs. යෙදුවා */}
+          <div><p className={`text-sm font-semibold uppercase ${mutedTextClass}`}>{dateFilter.selectedDate || dateFilter.startDate ? 'Filtered Profit' : "Overall Profit"}</p><p className="text-2xl font-bold text-blue-500">Rs. {profitKPI.toFixed(2)}</p></div>
           <DollarSign className="w-10 h-10 text-blue-500 opacity-50" />
         </div>
         <div className={`${bgClass} rounded-xl shadow-lg p-6 flex items-center justify-between border-l-4 border-purple-500`}>
@@ -124,7 +126,8 @@ const Analytics = ({ isDarkMode }) => {
                 <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#374151' : '#e5e7eb'} />
                 <XAxis dataKey="date" stroke={isDarkMode ? '#9ca3af' : '#6b7280'} />
                 <YAxis stroke={isDarkMode ? '#9ca3af' : '#6b7280'} />
-                <Tooltip contentStyle={{ backgroundColor: isDarkMode ? '#1f2937' : '#fff', color: isDarkMode ? '#fff' : '#000', border: 'none', borderRadius: '8px' }} formatter={(value, name) => [`$${parseFloat(value).toFixed(2)}`, name === 'sales' ? 'Revenue' : 'Profit']} />
+                {/* 💡 මෙතන Tooltip එකේ $ සලකුණ වෙනුවට Rs. යෙදුවා */}
+                <Tooltip contentStyle={{ backgroundColor: isDarkMode ? '#1f2937' : '#fff', color: isDarkMode ? '#fff' : '#000', border: 'none', borderRadius: '8px' }} formatter={(value, name) => [`Rs. ${parseFloat(value).toFixed(2)}`, name === 'sales' ? 'Revenue' : 'Profit']} />
                 <Line type="monotone" dataKey="sales" stroke="#6366f1" strokeWidth={3} name="Revenue" />
                 <Line type="monotone" dataKey="profit" stroke="#10b981" strokeWidth={3} name="Profit" />
               </LineChart>
@@ -142,7 +145,8 @@ const Analytics = ({ isDarkMode }) => {
                 <Pie data={categoryData} cx="50%" cy="50%" label={{ fill: isDarkMode ? '#fff' : '#000' }} outerRadius={100} dataKey="revenue">
                   {categoryData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                 </Pie>
-                <Tooltip contentStyle={{ backgroundColor: isDarkMode ? '#1f2937' : '#fff', color: isDarkMode ? '#fff' : '#000', border: 'none', borderRadius: '8px' }} formatter={(value) => [`$${parseFloat(value).toFixed(2)}`, 'Revenue']} />
+                {/* 💡 මෙතන Tooltip එකේ $ සලකුණ වෙනුවට Rs. යෙදුවා */}
+                <Tooltip contentStyle={{ backgroundColor: isDarkMode ? '#1f2937' : '#fff', color: isDarkMode ? '#fff' : '#000', border: 'none', borderRadius: '8px' }} formatter={(value) => [`Rs. ${parseFloat(value).toFixed(2)}`, 'Revenue']} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
