@@ -38,7 +38,6 @@ const Billing = ({ isDarkMode }) => {
     checkUnsyncedSales();
   }, []);
 
-  // Sync කරන ප්‍රධාන Function එක
   const syncOfflineSales = useCallback(async () => {
     try {
       const offlineSales = await getOfflineSales();
@@ -60,12 +59,10 @@ const Billing = ({ isDarkMode }) => {
           
           const errMsg = err.response?.data?.message?.toLowerCase() || '';
           
-          // දැන් මකන්නේ Backend එකෙන් "Duplicate / Already exists" කියලා කිව්වොත් විතරයි.
           if (errMsg.includes('duplicate') || errMsg.includes('already exists')) {
              console.warn(`Removing duplicate offline sale (Invoice: ${sale.invoiceId})`);
              await removeOfflineSale(sale.localId);
           } else {
-             // 400 Bad Request, 500 Server Error, Network Down මොක ආවත් බිල් එක Local DB එකේ සුරක්ෂිතව තියාගන්නවා.
              console.error(`Keeping Sale ${sale.invoiceId} in local DB to prevent data loss.`);
           }
         }
@@ -83,24 +80,38 @@ const Billing = ({ isDarkMode }) => {
     }
   }, [fetchProducts, showAlert]);
 
-  // 1. Wi-Fi තත්ත්වය තත්පරයෙන් තත්පරය පරීක්ෂා කිරීම (Refresh ප්‍රශ්නය විසඳීමට)
+  // 1. ඇත්තම Network එක පරීක්ෂා කිරීම (Real Ping Method) - මේකෙන් තමයි Wi-Fi Off වුණාම ක්ෂණිකව අල්ලගන්නේ
   useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
+    const checkRealNetwork = async () => {
+      // Browser එකෙන් කෙලින්ම Offline කිව්වොත්
+      if (!navigator.onLine) {
+        setIsOffline(true);
+        return;
+      }
+      
+      try {
+        // Browser Cache එක මගහැරලා ඇත්තටම ඉන්ටර්නෙට් වැඩද බලන්න පොඩි request එකක් යවනවා
+        await fetch(window.location.origin + '/?ping=' + Date.now(), { 
+          method: 'HEAD', 
+          cache: 'no-store' 
+        });
+        setIsOffline(false);
+      } catch (error) {
+        // Request එක fail වුණොත් ඒ කියන්නේ ඇත්තටම ඉන්ටර්නෙට් නෑ! (Wi-Fi Off කරලා)
+        setIsOffline(true);
+      }
+    };
 
-    // Browser එකෙන් දෙන සිග්නල් අල්ලගැනීම
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    // තත්පර 2න් 2කට පරීක්ෂා කිරීම
+    const interval = setInterval(checkRealNetwork, 2000);
 
-    // Browser එක සිග්නල් එක දුන්නේ නැත්නම්, තත්පර 1න් 1කට හොරෙන් චෙක් කිරීම
-    const interval = setInterval(() => {
-      setIsOffline(!navigator.onLine);
-    }, 1000); 
+    window.addEventListener('online', checkRealNetwork);
+    window.addEventListener('offline', () => setIsOffline(true));
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
       clearInterval(interval);
+      window.removeEventListener('online', checkRealNetwork);
+      window.removeEventListener('offline', () => setIsOffline(true));
     };
   }, []);
 
