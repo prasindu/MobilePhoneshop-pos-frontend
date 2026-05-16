@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { POSContext } from '../context/POSContext';
-import { ShoppingCart, Plus, Minus, Trash2, Printer, Receipt, User, Barcode, Filter, PlusCircle, X, Package, Loader2 } from 'lucide-react';
+// WifiOff අයිකන් එක අලුතින් එකතු කළා
+import { ShoppingCart, Plus, Minus, Trash2, Printer, Receipt, User, Barcode, Filter, PlusCircle, X, Package, Loader2, WifiOff } from 'lucide-react';
 import { generateBillHTML, printIframe, downloadPDF } from '../utils/receiptUtils';
 import api from '../api';
-// මෙතනට අලුත් imports ටික එකතු කළා
 import { saveSaleOffline, getOfflineSales, removeOfflineSale, updateOfflineStock } from '../utils/db';
 
 const Billing = ({ isDarkMode }) => {
-  // setProducts එකත් context එකෙන් ගත්තා
   const { 
     products, setProducts, categories, showAlert, isProcessing, setIsProcessing, storeInfo, fetchProducts,
     cart, setCart, customerInfo, setCustomerInfo, billNotes, setBillNotes,
@@ -22,23 +21,46 @@ const Billing = ({ isDarkMode }) => {
   const [showCustomItemForm, setShowCustomItemForm] = useState(false);
   const [customItem, setCustomItem] = useState({ name: '', price: '', quantity: 1, description: '' });
 
-  // Auto-Sync Offline Sales When Connection is Restored (අලුතින් එකතු කළ කොටස)
+  // 1. Offline ද Online ද කියලා බලාගන්න State එකක් (අලුතින් එකතු කළා)
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  // 2. Data On/Off වෙන එක ඒ වෙලාවෙම අල්ලගන්න Effect එක (අලුතින් එකතු කළා)
+  useEffect(() => {
+    const handleOnlineStatus = () => setIsOffline(false);
+    const handleOfflineStatus = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnlineStatus);
+    window.addEventListener('offline', handleOfflineStatus);
+
+    return () => {
+      window.removeEventListener('online', handleOnlineStatus);
+      window.removeEventListener('offline', handleOfflineStatus);
+    };
+  }, []);
+
+  // Auto-Sync Offline Sales When Connection is Restored
   useEffect(() => {
     const syncOfflineSales = async () => {
       try {
         const offlineSales = await getOfflineSales();
         
         if (offlineSales.length > 0) {
-          showAlert(`Syncing ${offlineSales.length} offline sales...`, 'info');
+          console.log(`Attempting to sync ${offlineSales.length} offline sales in background...`);
           let syncCount = 0;
 
           for (const sale of offlineSales) {
             try {
-              await api.createSale(sale);
-              await removeOfflineSale(sale.localId);
+              const { localId, savedAt, ...salePayload } = sale;
+              await api.createSale(salePayload);
+              await removeOfflineSale(localId);
               syncCount++;
             } catch (err) {
               console.error('Failed to sync an offline sale:', err);
+              const errMsg = err.response?.data?.message?.toLowerCase() || '';
+              if (errMsg.includes('duplicate') || errMsg.includes('already exists')) {
+                 await removeOfflineSale(sale.localId);
+                 console.warn("Removed duplicate offline sale:", sale.invoiceId);
+              }
             }
           }
 
@@ -57,7 +79,6 @@ const Billing = ({ isDarkMode }) => {
     };
 
     window.addEventListener('online', handleOnline);
-
     if (navigator.onLine) {
       syncOfflineSales();
     }
@@ -222,24 +243,18 @@ const Billing = ({ isDarkMode }) => {
 
     setIsProcessing(true);
     try {
-      
       await api.createSale(saleData);
       
       if (navigator.onLine) await fetchProducts(); 
       showAlert('Sale completed successfully!', 'success');
 
     } catch (error) {
-      
       if (!error.response || error.code === 'ERR_NETWORK' || !navigator.onLine) {
         console.warn("Network error detected, saving offline...", error);
         
-        // 1. Save Sale Offline
         await saveSaleOffline(saleData);
-        
-        // 2. Local DB එකේ Stock අඩු කිරීම
         await updateOfflineStock(cart);
         
-        // 3. UI එකේ Stock එක ඒ වෙලාවෙම අඩු කරලා පෙන්වීම
         if (setProducts) {
           setProducts(prevProducts => prevProducts.map(p => {
             const cartItem = cart.find(c => c.id === p.id && !c.isCustom);
@@ -293,6 +308,15 @@ const Billing = ({ isDarkMode }) => {
 
   return (
     <div className="space-y-6">
+
+      {/* 3. Offline Mode Banner එක (Data off වුණ ගමන් මෙතන රතු පාටින් වැටෙනවා) */}
+      {isOffline && (
+        <div className="bg-red-500 text-white p-3 rounded-lg shadow-lg flex items-center justify-center font-bold animate-pulse">
+          <WifiOff className="w-5 h-5 mr-3" />
+          OFFLINE MODE: You are currently offline. Sales will be saved locally.
+        </div>
+      )}
+
       <div className={`p-3 rounded-lg text-sm font-semibold flex flex-wrap justify-center gap-4 md:gap-6 ${isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-600 shadow'}`}>
          <span><kbd className="bg-gray-200 text-gray-800 px-2 py-1 rounded">F1</kbd> Pay & Print</span>
          <span><kbd className="bg-gray-200 text-gray-800 px-2 py-1 rounded">F2</kbd> Scanner</span>
@@ -300,6 +324,7 @@ const Billing = ({ isDarkMode }) => {
          <span><kbd className="bg-gray-200 text-gray-800 px-2 py-1 rounded">ESC</kbd> Close</span>
       </div>
 
+      {/* ඉතිරි කේතය වෙනසක් නොමැත... */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className={`rounded-xl shadow-lg p-6 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
           <h2 className="text-xl font-bold mb-4 flex items-center"><Barcode className="w-5 h-5 mr-2" /> Scanner (F2)</h2>
