@@ -1,7 +1,7 @@
 // src/services/api.js
 import axios from 'axios';
 
-const API_URL = 'https://prasindu-pos-api-e5bbfnb3b0ezbehh.southeastasia-01.azurewebsites.net/api';
+const API_URL = 'https://prasindu-pos-api-v2-bwb4arb8bkhzc8hn.southeastasia-01.azurewebsites.net/api';
 
 const api = axios.create({
   baseURL: API_URL,
