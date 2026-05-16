@@ -21,7 +21,7 @@ const Billing = ({ isDarkMode }) => {
   const [customItem, setCustomItem] = useState({ name: '', price: '', quantity: 1, description: '' });
 
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
-  const [unsyncedCount, setUnsyncedCount] = useState(0); // අලුතින්: Offline බිල් ගණන බලාගන්න
+  const [unsyncedCount, setUnsyncedCount] = useState(0); 
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Offline බිල් කීයක් තියෙනවද කියලා බලන Function එක
@@ -38,7 +38,7 @@ const Billing = ({ isDarkMode }) => {
     checkUnsyncedSales();
   }, []);
 
-  // Sync කරන ප්‍රධාන Function එක (දැන් බොත්තමෙන් සහ Auto දෙකෙන්ම වැඩ)
+ 
   const syncOfflineSales = useCallback(async () => {
     try {
       const offlineSales = await getOfflineSales();
@@ -51,13 +51,23 @@ const Billing = ({ isDarkMode }) => {
         try {
           const { localId, savedAt, ...salePayload } = sale;
           await api.createSale(salePayload);
+          
+          // සාර්ථකව සේව් වුණොත් පමණක් මකයි
           await removeOfflineSale(localId);
           syncCount++;
         } catch (err) {
           console.error('Failed to sync an offline sale:', err);
+          
           const errMsg = err.response?.data?.message?.toLowerCase() || '';
+          
+          // මෙතනින් status === 400 කියන එක අයින් කළා!
+          // දැන් මකන්නේ Backend එකෙන් "Duplicate / Already exists" කියලා කිව්වොත් විතරයි.
           if (errMsg.includes('duplicate') || errMsg.includes('already exists')) {
+             console.warn(`Removing duplicate offline sale (Invoice: ${sale.invoiceId})`);
              await removeOfflineSale(sale.localId);
+          } else {
+             // 400 Bad Request, 500 Server Error, Network Down මොක ආවත් බිල් එක Local DB එකේ සුරක්ෂිතව තියාගන්නවා.
+             console.error(`Keeping Sale ${sale.invoiceId} in local DB to prevent data loss.`);
           }
         }
       }
@@ -70,24 +80,40 @@ const Billing = ({ isDarkMode }) => {
       console.error("Error during auto-sync:", error);
     } finally {
       setIsSyncing(false);
-      checkUnsyncedSales(); // ඉතිරි බිල් ගණන යාවත්කාලීන කරනවා
+      checkUnsyncedSales(); 
     }
   }, [fetchProducts, showAlert]);
 
-  // Data On/Off වෙන එක ඒ වෙලාවෙම අල්ලගන්න Effect එක
+  // Data On/Off වෙන එක ඒ වෙලාවෙම අල්ලගන්න Effect එක (අලුත් කරන ලදි: Polling මගින්)
   useEffect(() => {
-    const handleOnlineStatus = () => {
-      setIsOffline(false);
-      syncOfflineSales(); // ඉන්ටර්නෙට් ආපු ගමන්ම Auto Sync වෙනවා
-    };
-    const handleOfflineStatus = () => setIsOffline(true);
+    let wasOffline = !navigator.onLine;
 
-    window.addEventListener('online', handleOnlineStatus);
-    window.addEventListener('offline', handleOfflineStatus);
+    const checkNetworkStatus = () => {
+      const isNowOffline = !navigator.onLine;
+      
+      // Offline ඉඳලා Online ආවා නම්
+      if (wasOffline && !isNowOffline) {
+        setIsOffline(false);
+        syncOfflineSales(); 
+      } 
+      // Online ඉඳලා Offline ගියා නම්
+      else if (!wasOffline && isNowOffline) {
+        setIsOffline(true);
+      }
+      
+      wasOffline = isNowOffline;
+    };
+
+    window.addEventListener('online', checkNetworkStatus);
+    window.addEventListener('offline', checkNetworkStatus);
+
+    // තත්පර 2න් 2කට බලෙන් චෙක් කිරීම (Refresh ප්‍රශ්නය විසඳීමට)
+    const networkCheckInterval = setInterval(checkNetworkStatus, 2000);
 
     return () => {
-      window.removeEventListener('online', handleOnlineStatus);
-      window.removeEventListener('offline', handleOfflineStatus);
+      window.removeEventListener('online', checkNetworkStatus);
+      window.removeEventListener('offline', checkNetworkStatus);
+      clearInterval(networkCheckInterval);
     };
   }, [syncOfflineSales]);
 
@@ -254,13 +280,12 @@ const Billing = ({ isDarkMode }) => {
       showAlert('Sale completed successfully!', 'success');
 
     } catch (error) {
-      // මෙතන තමා offline සේව් වෙන්නේ
       if (!error.response || error.code === 'ERR_NETWORK' || !navigator.onLine) {
         console.warn("Network error detected, saving offline...", error);
         
         await saveSaleOffline(saleData);
         await updateOfflineStock(cart);
-        checkUnsyncedSales(); // අලුතින් බිල් එකක් හැදුන ගමන් ගණන අප්ඩේට් කරනවා
+        checkUnsyncedSales(); 
         
         if (setProducts) {
           setProducts(prevProducts => prevProducts.map(p => {
@@ -316,7 +341,6 @@ const Billing = ({ isDarkMode }) => {
   return (
     <div className="space-y-6">
 
-      {/* භෞතිකව Wi-Fi/Data විසන්ධි වූ විට පෙන්වන බැනරය */}
       {isOffline && (
         <div className="bg-red-500 text-white p-3 rounded-lg shadow-lg flex items-center justify-center font-bold animate-pulse">
           <WifiOff className="w-5 h-5 mr-3" />
@@ -324,7 +348,6 @@ const Billing = ({ isDarkMode }) => {
         </div>
       )}
 
-      {/* Sync වීමට ඉතිරිව ඇති බිල් පෙන්වන බැනරය සහ Manual Sync බොත්තම */}
       {unsyncedCount > 0 && !isOffline && (
         <div className="bg-yellow-500 text-white p-3 rounded-lg shadow-lg flex flex-col md:flex-row items-center justify-between font-bold">
           <div className="flex items-center mb-2 md:mb-0">
