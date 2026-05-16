@@ -6,14 +6,18 @@ export const generateBillHTML = (saleData, storeInfo) => {
   let itemsSubtotal = 0;
 
   const itemsHTML = saleData.items.map(item => {
-    // එක් එක් භාණ්ඩය සඳහා ලබා දී ඇති වට්ටම් (Item level discounts) ගණනය කිරීම
     let discountedUnitPrice = item.unitPrice;
+    let itemDiscountLabel = '';
+
+    // අයිටම් එකට ඩිස්කවුන්ට් එකක් දීලා තියෙනවා නම්
     if (item.discount > 0) {
       const dType = (item.discountType || '').toUpperCase();
       if (dType === 'PERCENTAGE') {
         discountedUnitPrice = item.unitPrice * (1 - item.discount / 100);
+        itemDiscountLabel = `<br><small class="item-dis">(-${item.discount}%)</small>`;
       } else {
         discountedUnitPrice = Math.max(0, item.unitPrice - item.discount);
+        itemDiscountLabel = `<br><small class="item-dis">(-Rs.${item.discount})</small>`;
       }
     }
     const itemTotal = discountedUnitPrice * item.quantity;
@@ -21,14 +25,16 @@ export const generateBillHTML = (saleData, storeInfo) => {
 
     return `
       <tr>
-        <td class="item-name">${item.productName}</td>
+        <td class="item-name">
+           ${item.productName} 
+           ${itemDiscountLabel}
+        </td>
         <td class="text-center">${item.quantity}</td>
         <td class="text-right">${itemTotal.toFixed(2)}</td>
       </tr>
     `;
   }).join('');
 
-  // මුළු බිලටම ලබා දී ඇති වට්ටම් (Global discounts) ගණනය කිරීම
   let globalDiscountAmount = 0;
   if (saleData.discount > 0) {
     const globalDType = (saleData.discountType || '').toUpperCase();
@@ -39,10 +45,8 @@ export const generateBillHTML = (saleData, storeInfo) => {
     }
   }
 
-  // අවසාන මුදල
   const finalTotal = saleData.total !== undefined ? saleData.total : (itemsSubtotal - globalDiscountAmount);
 
-  // 80mm Thermal Printer CSS
   return `
     <!DOCTYPE html>
     <html>
@@ -52,7 +56,7 @@ export const generateBillHTML = (saleData, storeInfo) => {
         @page { margin: 0; }
         body { 
           font-family: 'Courier New', Courier, monospace; 
-          width: 72mm; /* 80mm paper width minus margins */
+          width: 72mm; 
           margin: 0 auto; 
           padding: 4mm; 
           color: #000; 
@@ -67,13 +71,15 @@ export const generateBillHTML = (saleData, storeInfo) => {
         .details { margin-bottom: 10px; font-size: 11px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
         th { border-bottom: 1px solid #000; padding: 2px 0; font-size: 11px; text-align: left;}
-        td { padding: 3px 0; font-size: 11px; vertical-align: top; }
+        td { padding: 4px 0; font-size: 12px; vertical-align: top; }
         .item-name { width: 50%; word-break: break-all; }
+        .item-dis { color: #555; font-size: 10px; }
         .totals { border-top: 1px dashed #000; padding-top: 5px; }
         .totals-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
         .discount-row { color: #333; font-size: 11px; }
-        .final { font-weight: bold; font-size: 14px; margin-top: 4px; border-top: 1px solid #000; padding-top: 4px; }
-        .footer { text-align: center; margin-top: 15px; font-size: 10px; border-top: 1px dashed #000; padding-top: 5px; }
+        .final { font-weight: bold; font-size: 15px; margin-top: 4px; border-top: 1px solid #000; padding-top: 4px; }
+        .notes { font-size: 11px; font-style: italic; border-top: 1px dashed #ccc; margin-top: 10px; padding-top: 5px; text-align: center; }
+        .footer { text-align: center; margin-top: 15px; font-size: 11px; border-top: 1px dashed #000; padding-top: 5px; font-weight: bold; }
       </style>
     </head>
     <body>
@@ -86,6 +92,7 @@ export const generateBillHTML = (saleData, storeInfo) => {
         <div>Inv: ${saleData.invoiceId}</div>
         <div>Date: ${currentDate.toLocaleString()}</div>
         ${saleData.customerName ? `<div>Cust: ${saleData.customerName}</div>` : ''}
+        ${saleData.customerPhone ? `<div>Tel: ${saleData.customerPhone}</div>` : ''}
       </div>
       <table>
         <thead>
@@ -104,6 +111,8 @@ export const generateBillHTML = (saleData, storeInfo) => {
         ` : ''}
         <div class="totals-row final"><span>Total:</span><span>Rs. ${parseFloat(finalTotal).toFixed(2)}</span></div>
       </div>
+
+      ${saleData.notes ? `<div class="notes">Note: ${saleData.notes}</div>` : ''}
       
       <div class="footer">
         Thank you! Come again.
@@ -113,18 +122,21 @@ export const generateBillHTML = (saleData, storeInfo) => {
   `;
 };
 
+// Iframe එක UI එකේ කිසිම විදිහකින් නොපෙනෙන්න සහ හිරවෙන්නේ නැති වෙන්න හැදුවා
 export const printIframe = (htmlContent) => {
   const iframe = document.createElement('iframe');
-  iframe.style.position = 'fixed';
-  iframe.style.right = '-1000px';
-  iframe.style.bottom = '-1000px';
+  iframe.style.display = 'none'; // සම්පූර්ණයෙන්ම සඟවයි
   document.body.appendChild(iframe);
   iframe.contentWindow.document.open();
   iframe.contentWindow.document.write(htmlContent);
   iframe.contentWindow.document.close();
-  iframe.contentWindow.focus();
-  iframe.contentWindow.print();
-  setTimeout(() => document.body.removeChild(iframe), 2000);
+  
+  // Load වුණාට පස්සේ විතරක් Print එක කෝල් කරනවා
+  iframe.onload = () => {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    setTimeout(() => document.body.removeChild(iframe), 3000);
+  };
 };
 
 export const downloadPDF = (htmlContent, filename) => {

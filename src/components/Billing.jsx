@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import { POSContext } from '../context/POSContext';
-import { ShoppingCart, Plus, Minus, Trash2, Printer, Receipt, User, Barcode, Filter, PlusCircle, X, Package, Loader2, WifiOff, CloudOff, RefreshCw } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, Printer, Receipt, User, Barcode, Filter, PlusCircle, X, Package, Loader2, WifiOff, CloudOff, RefreshCw, Tag } from 'lucide-react';
 import { generateBillHTML, printIframe, downloadPDF } from '../utils/receiptUtils';
 import api from '../api';
 import { saveSaleOffline, getOfflineSales, removeOfflineSale, updateOfflineStock } from '../utils/db';
@@ -24,7 +24,6 @@ const Billing = ({ isDarkMode }) => {
   const [unsyncedCount, setUnsyncedCount] = useState(0); 
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Offline බිල් කීයක් තියෙනවද කියලා බලන Function එක
   const checkUnsyncedSales = async () => {
     try {
       const offlineSales = await getOfflineSales();
@@ -50,20 +49,12 @@ const Billing = ({ isDarkMode }) => {
         try {
           const { localId, savedAt, ...salePayload } = sale;
           await api.createSale(salePayload);
-          
-          // සාර්ථකව සේව් වුණොත් පමණක් මකයි
           await removeOfflineSale(localId);
           syncCount++;
         } catch (err) {
-          console.error('Failed to sync an offline sale:', err);
-          
           const errMsg = err.response?.data?.message?.toLowerCase() || '';
-          
           if (errMsg.includes('duplicate') || errMsg.includes('already exists')) {
-             console.warn(`Removing duplicate offline sale (Invoice: ${sale.invoiceId})`);
              await removeOfflineSale(sale.localId);
-          } else {
-             console.error(`Keeping Sale ${sale.invoiceId} in local DB to prevent data loss.`);
           }
         }
       }
@@ -80,31 +71,21 @@ const Billing = ({ isDarkMode }) => {
     }
   }, [fetchProducts, showAlert]);
 
-  // 1. ඇත්තම Network එක පරීක්ෂා කිරීම (Real Ping Method) - මේකෙන් තමයි Wi-Fi Off වුණාම ක්ෂණිකව අල්ලගන්නේ
   useEffect(() => {
     const checkRealNetwork = async () => {
-      // Browser එකෙන් කෙලින්ම Offline කිව්වොත්
       if (!navigator.onLine) {
         setIsOffline(true);
         return;
       }
-      
       try {
-        // Browser Cache එක මගහැරලා ඇත්තටම ඉන්ටර්නෙට් වැඩද බලන්න පොඩි request එකක් යවනවා
-        await fetch(window.location.origin + '/?ping=' + Date.now(), { 
-          method: 'HEAD', 
-          cache: 'no-store' 
-        });
+        await fetch(window.location.origin + '/?ping=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
         setIsOffline(false);
       } catch (error) {
-        // Request එක fail වුණොත් ඒ කියන්නේ ඇත්තටම ඉන්ටර්නෙට් නෑ! (Wi-Fi Off කරලා)
         setIsOffline(true);
       }
     };
 
-    // තත්පර 2න් 2කට පරීක්ෂා කිරීම
     const interval = setInterval(checkRealNetwork, 2000);
-
     window.addEventListener('online', checkRealNetwork);
     window.addEventListener('offline', () => setIsOffline(true));
 
@@ -115,14 +96,10 @@ const Billing = ({ isDarkMode }) => {
     };
   }, []);
 
-  // 2. Wi-Fi ආපු ගමන්ම ස්වයංක්‍රීයව බිල් යැවීම (Auto Sync)
   useEffect(() => {
-    if (!isOffline) {
-      syncOfflineSales();
-    }
+    if (!isOffline) syncOfflineSales();
   }, [isOffline, syncOfflineSales]);
 
-  // Keyboard Shortcuts Listener
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
       if (e.key === 'F1') {
@@ -142,12 +119,10 @@ const Billing = ({ isDarkMode }) => {
         setShowCustomItemForm(false);
       }
     };
-
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [cart, customerInfo, discount, discountType, billNotes]);
 
-  // Direct Barcode Scanner Logic
   useEffect(() => {
     let barcode = '';
     let timeout;
@@ -190,7 +165,6 @@ const Billing = ({ isDarkMode }) => {
       name: customItem.name, 
       sellingPrice: parseFloat(customItem.price),
       receivedPrice: 0, 
-      description: customItem.description || 'Custom item',
       quantity: parseInt(customItem.quantity) || 1, 
       category: 'custom', 
       barcode: 'CUSTOM',
@@ -249,7 +223,7 @@ const Billing = ({ isDarkMode }) => {
       
     const total = totalAfterItemDiscounts - discountAmount;
     const totalCost = cart.reduce((sum, item) => sum + ((item.receivedPrice || 0) * item.quantity), 0);
-    const profit = total - totalCost || 0;
+    const profit = total - totalCost || 0; // ලාභය ගණනය කිරීම නැවතත් එක්කර ඇත
     
     return { subtotal, discountAmount, total, profit, totalAfterItemDiscounts };
   };
@@ -261,11 +235,12 @@ const Billing = ({ isDarkMode }) => {
     const saleData = {
       invoiceId: `INV-${Date.now()}`, 
       total: totals.total, 
-      profit: totals.profit,
+      profit: totals.profit, // ලාභය Backend එකට යැවීම නැවත එක්කර ඇත
       discount: isNaN(discount) ? 0 : discount, 
       discountType: discountType.toUpperCase(),
       customerName: customerInfo.name, 
       customerPhone: customerInfo.phone,
+      notes: billNotes, 
       items: cart.map(item => ({
         productId: item.isCustom ? null : item.id, 
         productName: item.name,
@@ -278,51 +253,45 @@ const Billing = ({ isDarkMode }) => {
     };
 
     setIsProcessing(true);
+    
     try {
       await api.createSale(saleData);
-      
       if (navigator.onLine) await fetchProducts(); 
       showAlert('Sale completed successfully!', 'success');
-
     } catch (error) {
       if (!error.response || error.code === 'ERR_NETWORK' || !navigator.onLine) {
-        console.warn("Network error detected, saving offline...", error);
-        
+        setIsOffline(true);
         await saveSaleOffline(saleData);
         await updateOfflineStock(cart);
         checkUnsyncedSales(); 
-        
         if (setProducts) {
           setProducts(prevProducts => prevProducts.map(p => {
             const cartItem = cart.find(c => c.id === p.id && !c.isCustom);
-            if (cartItem) {
-              return { ...p, stock: p.stock - cartItem.quantity };
-            }
-            return p;
+            return cartItem ? { ...p, stock: p.stock - cartItem.quantity } : p;
           }));
         }
-
         showAlert('Network Offline. Sale saved locally!', 'warning');
       } else {
-        console.error("Backend Error:", error);
         showAlert(error.response?.data?.message || 'Failed to complete sale.', 'error');
         setIsProcessing(false);
         return; 
       }
     }
 
-    try {
-      const htmlBill = generateBillHTML(saleData, storeInfo);
-      downloadPDF(htmlBill, saleData.invoiceId);
-      printIframe(htmlBill);
-    } catch (printErr) {
-      console.error("Printing error", printErr);
-    }
-
     setCart([]); 
     setCustomerInfo({ name: '', phone: '', email: '', address: '' });
     setDiscount(0);
+    setBillNotes('');
     setIsProcessing(false);
+
+    setTimeout(() => {
+      try {
+        const htmlBill = generateBillHTML(saleData, storeInfo);
+        printIframe(htmlBill);
+      } catch (printErr) {
+        console.error("Printing error", printErr);
+      }
+    }, 500); 
   };
 
   const printBillAction = () => {
@@ -332,6 +301,7 @@ const Billing = ({ isDarkMode }) => {
        total: getCartTotals().total,
        customerName: customerInfo.name,
        customerPhone: customerInfo.phone,
+       notes: billNotes,
        items: cart
     };
     const htmlBill = generateBillHTML(saleData, storeInfo);
@@ -349,7 +319,7 @@ const Billing = ({ isDarkMode }) => {
       {isOffline && (
         <div className="bg-red-500 text-white p-3 rounded-lg shadow-lg flex items-center justify-center font-bold animate-pulse">
           <WifiOff className="w-5 h-5 mr-3" />
-          INTERNET DISCONNECTED: Sales will be saved locally.
+          OFFLINE OR SERVER DOWN: Sales will be saved locally.
         </div>
       )}
 
@@ -360,8 +330,7 @@ const Billing = ({ isDarkMode }) => {
             You have {unsyncedCount} unsynced offline sale(s).
           </div>
           <button 
-            onClick={syncOfflineSales} 
-            disabled={isSyncing}
+            onClick={syncOfflineSales} disabled={isSyncing}
             className="bg-white text-yellow-600 px-4 py-2 rounded-lg shadow hover:bg-yellow-50 transition-colors flex items-center disabled:opacity-50"
           >
             {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
@@ -374,7 +343,6 @@ const Billing = ({ isDarkMode }) => {
          <span><kbd className="bg-gray-200 text-gray-800 px-2 py-1 rounded">F1</kbd> Pay & Print</span>
          <span><kbd className="bg-gray-200 text-gray-800 px-2 py-1 rounded">F2</kbd> Scanner</span>
          <span><kbd className="bg-gray-200 text-gray-800 px-2 py-1 rounded">F4</kbd> Clear Cart</span>
-         <span><kbd className="bg-gray-200 text-gray-800 px-2 py-1 rounded">ESC</kbd> Close</span>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -382,10 +350,7 @@ const Billing = ({ isDarkMode }) => {
           <h2 className="text-xl font-bold mb-4 flex items-center"><Barcode className="w-5 h-5 mr-2" /> Scanner (F2)</h2>
           <form onSubmit={handleBarcodeSubmit} className="flex gap-2">
             <input 
-              ref={barcodeRef}
-              type="text" 
-              placeholder="Scan barcode..." 
-              value={barcodeInput} 
+              ref={barcodeRef} type="text" placeholder="Scan barcode..." value={barcodeInput} 
               onChange={(e) => setBarcodeInput(e.target.value)} 
               className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white'}`} 
               autoFocus
@@ -444,36 +409,56 @@ const Billing = ({ isDarkMode }) => {
              <span className="bg-indigo-100 text-indigo-800 text-xs font-bold px-2 py-1 rounded-full">{cart.length} Items</span>
           </div>
           
-          <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2">
+          <div className="flex-1 overflow-y-auto space-y-2 mb-4 pr-2">
             {cart.map(item => {
               const discountedPrice = calculateItemPrice(item);
+              const originalRowTotal = item.sellingPrice * item.quantity;
+              const newRowTotal = discountedPrice * item.quantity;
+
               return (
-                <div key={item.id} className={`border p-3 rounded-xl ${isDarkMode ? 'border-gray-700 bg-gray-750' : 'bg-gray-50 border-gray-200'}`}>
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h4 className="font-bold text-sm">{item.name}</h4>
-                      <p className="text-xs text-gray-500">Rs. {item.sellingPrice} each</p>
+                <div key={item.id} className={`border p-3 rounded-xl transition-all ${isDarkMode ? 'border-gray-700 bg-gray-750' : 'bg-gray-50 border-gray-200'}`}>
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className={`font-bold text-sm ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`}>{item.name}</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-gray-500">Rs. {item.sellingPrice}</span>
+                        {item.discount > 0 && (
+                          <span className="bg-red-100 text-red-600 px-1.5 py-0.5 rounded text-[10px] font-bold flex items-center">
+                            <Tag className="w-3 h-3 mr-1"/> -{item.discount}{item.discountType === 'percentage' ? '%' : 'Rs'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-indigo-600">Rs. {(discountedPrice * item.quantity).toFixed(2)}</p>
+                      <p className="font-black text-indigo-600 text-sm">Rs. {newRowTotal.toFixed(2)}</p>
+                      {item.discount > 0 && (
+                        <p className="text-[10px] text-gray-400 line-through">Rs. {originalRowTotal.toFixed(2)}</p>
+                      )}
                     </div>
                   </div>
-                  <div className="flex justify-between items-center mt-3">
-                    <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-600 p-0.5">
-                      <button onClick={() => updateCartQuantity(item.id, item.quantity - 1)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded text-gray-600 dark:text-gray-300"><Minus className="w-3.5 h-3.5"/></button>
-                      <span className="w-6 text-center text-sm font-semibold">{item.quantity}</span>
-                      <button onClick={() => updateCartQuantity(item.id, item.quantity + 1)} className="p-1 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded text-indigo-600 dark:text-indigo-400"><Plus className="w-3.5 h-3.5"/></button>
+
+                  <div className={`flex justify-between items-center mt-3 pt-3 border-t border-dashed ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
+                    <div className="flex items-center bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-600 p-0.5 shadow-sm">
+                      <button onClick={() => updateCartQuantity(item.id, item.quantity - 1)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300"><Minus className="w-3.5 h-3.5"/></button>
+                      <span className="w-8 text-center text-sm font-bold">{item.quantity}</span>
+                      <button onClick={() => updateCartQuantity(item.id, item.quantity + 1)} className="p-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded text-indigo-600 dark:text-indigo-400"><Plus className="w-3.5 h-3.5"/></button>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <select value={item.discountType} onChange={e => updateItemDiscount(item.id, item.discount, e.target.value)} className={`text-xs border rounded p-1.5 outline-none ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white'}`}><option value="percentage">%</option><option value="fixed">Rs.</option></select>
-                      <input type="number" value={isNaN(item.discount)?'':item.discount} onChange={e => updateItemDiscount(item.id, parseFloat(e.target.value), item.discountType)} className={`w-14 text-xs border rounded p-1.5 outline-none ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white'}`} placeholder="Dis."/>
-                      <button onClick={() => updateCartQuantity(item.id, 0)} className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg ml-1"><Trash2 className="w-4 h-4"/></button>
+                    
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex border rounded-lg overflow-hidden dark:border-gray-600 shadow-sm">
+                         <input type="number" value={isNaN(item.discount)?'':item.discount} onChange={e => updateItemDiscount(item.id, parseFloat(e.target.value), item.discountType)} className={`w-12 text-xs p-1.5 outline-none text-center ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white'}`} placeholder="Dis."/>
+                         <select value={item.discountType} onChange={e => updateItemDiscount(item.id, item.discount, e.target.value)} className={`text-xs p-1.5 outline-none border-l dark:border-gray-600 cursor-pointer ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-gray-100'}`}>
+                           <option value="percentage">%</option>
+                           <option value="fixed">Rs.</option>
+                         </select>
+                      </div>
+                      <button onClick={() => updateCartQuantity(item.id, 0)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"><Trash2 className="w-4 h-4"/></button>
                     </div>
                   </div>
                 </div>
               );
             })}
-            {cart.length === 0 && <div className="text-center text-gray-400 py-10 flex flex-col items-center"><ShoppingCart className="w-12 h-12 mb-3 opacity-50"/>Cart is empty</div>}
+            {cart.length === 0 && <div className="text-center text-gray-400 py-12 flex flex-col items-center"><ShoppingCart className="w-14 h-14 mb-3 opacity-30"/>Cart is empty</div>}
           </div>
 
           <div className="mt-auto border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
@@ -500,15 +485,9 @@ const Billing = ({ isDarkMode }) => {
                       className="flex-1 bg-green-600 hover:bg-green-700 text-white p-4 rounded-xl font-black text-xl flex justify-center items-center transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:grayscale"
                     >
                       {isProcessing ? (
-                        <>
-                          <Loader2 className="w-6 h-6 mr-2 animate-spin" />
-                          SAVING...
-                        </>
+                        <><Loader2 className="w-6 h-6 mr-2 animate-spin" /> SAVING...</>
                       ) : (
-                        <>
-                          <Receipt className="w-6 h-6 mr-2"/> 
-                          PAY (F1)
-                        </>
+                        <><Receipt className="w-6 h-6 mr-2"/> PAY (F1)</>
                       )}
                     </button>
                  </div>
