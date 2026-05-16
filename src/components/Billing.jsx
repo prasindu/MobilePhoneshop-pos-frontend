@@ -38,7 +38,7 @@ const Billing = ({ isDarkMode }) => {
     checkUnsyncedSales();
   }, []);
 
- 
+  // Sync කරන ප්‍රධාන Function එක
   const syncOfflineSales = useCallback(async () => {
     try {
       const offlineSales = await getOfflineSales();
@@ -60,7 +60,6 @@ const Billing = ({ isDarkMode }) => {
           
           const errMsg = err.response?.data?.message?.toLowerCase() || '';
           
-          // මෙතනින් status === 400 කියන එක අයින් කළා!
           // දැන් මකන්නේ Backend එකෙන් "Duplicate / Already exists" කියලා කිව්වොත් විතරයි.
           if (errMsg.includes('duplicate') || errMsg.includes('already exists')) {
              console.warn(`Removing duplicate offline sale (Invoice: ${sale.invoiceId})`);
@@ -84,38 +83,33 @@ const Billing = ({ isDarkMode }) => {
     }
   }, [fetchProducts, showAlert]);
 
-  // Data On/Off වෙන එක ඒ වෙලාවෙම අල්ලගන්න Effect එක (අලුත් කරන ලදි: Polling මගින්)
+  // 1. Wi-Fi තත්ත්වය තත්පරයෙන් තත්පරය පරීක්ෂා කිරීම (Refresh ප්‍රශ්නය විසඳීමට)
   useEffect(() => {
-    let wasOffline = !navigator.onLine;
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
 
-    const checkNetworkStatus = () => {
-      const isNowOffline = !navigator.onLine;
-      
-      // Offline ඉඳලා Online ආවා නම්
-      if (wasOffline && !isNowOffline) {
-        setIsOffline(false);
-        syncOfflineSales(); 
-      } 
-      // Online ඉඳලා Offline ගියා නම්
-      else if (!wasOffline && isNowOffline) {
-        setIsOffline(true);
-      }
-      
-      wasOffline = isNowOffline;
-    };
+    // Browser එකෙන් දෙන සිග්නල් අල්ලගැනීම
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
-    window.addEventListener('online', checkNetworkStatus);
-    window.addEventListener('offline', checkNetworkStatus);
-
-    // තත්පර 2න් 2කට බලෙන් චෙක් කිරීම (Refresh ප්‍රශ්නය විසඳීමට)
-    const networkCheckInterval = setInterval(checkNetworkStatus, 2000);
+    // Browser එක සිග්නල් එක දුන්නේ නැත්නම්, තත්පර 1න් 1කට හොරෙන් චෙක් කිරීම
+    const interval = setInterval(() => {
+      setIsOffline(!navigator.onLine);
+    }, 1000); 
 
     return () => {
-      window.removeEventListener('online', checkNetworkStatus);
-      window.removeEventListener('offline', checkNetworkStatus);
-      clearInterval(networkCheckInterval);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(interval);
     };
-  }, [syncOfflineSales]);
+  }, []);
+
+  // 2. Wi-Fi ආපු ගමන්ම ස්වයංක්‍රීයව බිල් යැවීම (Auto Sync)
+  useEffect(() => {
+    if (!isOffline) {
+      syncOfflineSales();
+    }
+  }, [isOffline, syncOfflineSales]);
 
   // Keyboard Shortcuts Listener
   useEffect(() => {
