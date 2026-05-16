@@ -97,11 +97,32 @@ const Inventory = ({ isDarkMode }) => {
     finally { setIsProcessing(false); }
   };
 
-  const handleUpdate = async () => {
+const handleUpdate = async () => {
     setIsProcessing(true);
-    try { await api.updateProduct(editingProductId, editingProduct); await fetchProducts(); setEditingProductId(null); setEditingProduct(null); showAlert('Product updated', 'success'); } 
-    catch (error) { showAlert('Update failed', 'error'); } 
-    finally { setIsProcessing(false); }
+    try {
+      
+      const categoryObj = categories.find(cat => cat.name === editingProduct.category);
+
+     
+      const updatePayload = {
+        ...editingProduct,
+        receivedPrice: parseFloat(editingProduct.receivedPrice) || 0,
+        sellingPrice: parseFloat(editingProduct.sellingPrice) || 0,
+        stock: parseInt(editingProduct.stock) || 0,
+        categoryId: categoryObj?.id 
+      };
+
+      
+      await api.updateProduct(editingProductId, updatePayload);
+      await fetchProducts();
+      setEditingProductId(null);
+      setEditingProduct(null);
+      showAlert('Product updated', 'success');
+    } catch (error) { 
+      showAlert('Update failed', 'error'); 
+    } finally { 
+      setIsProcessing(false); 
+    }
   };
 
   const bgClass = isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white';
