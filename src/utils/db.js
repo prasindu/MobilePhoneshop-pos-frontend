@@ -18,7 +18,7 @@ export const initDB = async () => {
   });
 };
 
-// 1. Products Local DB save (Online )
+// 1. Products Local DB save (Online)
 export const saveProductsOffline = async (products) => {
   const db = await initDB();
   const tx = db.transaction('products', 'readwrite');
@@ -26,19 +26,19 @@ export const saveProductsOffline = async (products) => {
   await tx.done;
 };
 
-// 2. Products Local DB  (Offline )
+// 2. Products Local DB  (Offline)
 export const getProductsOffline = async () => {
   const db = await initDB();
   return db.getAll('products');
 };
 
-// 3. bill Local DB save (Offline )
+// 3. bill Local DB save (Offline)
 export const saveSaleOffline = async (saleData) => {
   const db = await initDB();
   return db.add('offline_sales', { ...saleData, savedAt: new Date().toISOString() });
 };
 
-// 4. Offline  (Sync )
+// 4. Offline  (Sync)
 export const getOfflineSales = async () => {
   const db = await initDB();
   return db.getAll('offline_sales');
@@ -48,4 +48,26 @@ export const getOfflineSales = async () => {
 export const removeOfflineSale = async (localId) => {
   const db = await initDB();
   return db.delete('offline_sales', localId);
+};
+
+// 6. Local DB decrees Stock 
+export const updateOfflineStock = async (cartItems) => {
+  const db = await initDB();
+  const tx = db.transaction('products', 'readwrite');
+  const store = tx.objectStore('products');
+
+  for (const item of cartItems) {
+    if (!item.isCustom) {
+      
+      const productId = item.productId || item.id;
+      const product = await store.get(productId);
+      
+      
+      if (product) {
+        product.stock = product.stock - item.quantity;
+        await store.put(product);
+      }
+    }
+  }
+  await tx.done;
 };

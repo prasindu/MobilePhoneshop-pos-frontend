@@ -1,14 +1,15 @@
-
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { POSContext } from '../context/POSContext';
 import { ShoppingCart, Plus, Minus, Trash2, Printer, Receipt, User, Barcode, Filter, PlusCircle, X, Package, Loader2 } from 'lucide-react';
 import { generateBillHTML, printIframe, downloadPDF } from '../utils/receiptUtils';
 import api from '../api';
-import { saveSaleOffline } from '../utils/db';
+// මෙතනට අලුත් imports ටික එකතු කළා
+import { saveSaleOffline, getOfflineSales, removeOfflineSale, updateOfflineStock } from '../utils/db';
 
 const Billing = ({ isDarkMode }) => {
+  // setProducts එකත් context එකෙන් ගත්තා
   const { 
-    products, categories, showAlert, isProcessing, setIsProcessing, storeInfo, fetchProducts,
+    products, setProducts, categories, showAlert, isProcessing, setIsProcessing, storeInfo, fetchProducts,
     cart, setCart, customerInfo, setCustomerInfo, billNotes, setBillNotes,
     discount, setDiscount, discountType, setDiscountType
   } = useContext(POSContext);
@@ -20,6 +21,49 @@ const Billing = ({ isDarkMode }) => {
   
   const [showCustomItemForm, setShowCustomItemForm] = useState(false);
   const [customItem, setCustomItem] = useState({ name: '', price: '', quantity: 1, description: '' });
+
+  // Auto-Sync Offline Sales When Connection is Restored (අලුතින් එකතු කළ කොටස)
+  useEffect(() => {
+    const syncOfflineSales = async () => {
+      try {
+        const offlineSales = await getOfflineSales();
+        
+        if (offlineSales.length > 0) {
+          showAlert(`Syncing ${offlineSales.length} offline sales...`, 'info');
+          let syncCount = 0;
+
+          for (const sale of offlineSales) {
+            try {
+              await api.createSale(sale);
+              await removeOfflineSale(sale.localId);
+              syncCount++;
+            } catch (err) {
+              console.error('Failed to sync an offline sale:', err);
+            }
+          }
+
+          if (syncCount > 0) {
+            showAlert(`Successfully synced ${syncCount} offline sales!`, 'success');
+            if (navigator.onLine) await fetchProducts(); 
+          }
+        }
+      } catch (error) {
+        console.error("Error during auto-sync:", error);
+      }
+    };
+
+    const handleOnline = () => {
+      syncOfflineSales();
+    };
+
+    window.addEventListener('online', handleOnline);
+
+    if (navigator.onLine) {
+      syncOfflineSales();
+    }
+
+    return () => window.removeEventListener('online', handleOnline);
+  }, []);
 
   // Keyboard Shortcuts Listener
   useEffect(() => {
@@ -181,7 +225,6 @@ const Billing = ({ isDarkMode }) => {
       
       await api.createSale(saleData);
       
-      
       if (navigator.onLine) await fetchProducts(); 
       showAlert('Sale completed successfully!', 'success');
 
@@ -190,11 +233,25 @@ const Billing = ({ isDarkMode }) => {
       if (!error.response || error.code === 'ERR_NETWORK' || !navigator.onLine) {
         console.warn("Network error detected, saving offline...", error);
         
-        
+        // 1. Save Sale Offline
         await saveSaleOffline(saleData);
-        showAlert('You are offline. Sale saved locally and will sync later!', 'warning');
-      } else {
         
+        // 2. Local DB එකේ Stock අඩු කිරීම
+        await updateOfflineStock(cart);
+        
+        // 3. UI එකේ Stock එක ඒ වෙලාවෙම අඩු කරලා පෙන්වීම
+        if (setProducts) {
+          setProducts(prevProducts => prevProducts.map(p => {
+            const cartItem = cart.find(c => c.id === p.id && !c.isCustom);
+            if (cartItem) {
+              return { ...p, stock: p.stock - cartItem.quantity };
+            }
+            return p;
+          }));
+        }
+
+        showAlert('You are offline. Sale saved locally and stock updated!', 'warning');
+      } else {
         console.error("Backend Error:", error);
         showAlert(error.response?.data?.message || 'Failed to complete sale.', 'error');
         setIsProcessing(false);
@@ -202,7 +259,6 @@ const Billing = ({ isDarkMode }) => {
       }
     }
 
-    
     try {
       const htmlBill = generateBillHTML(saleData, storeInfo);
       downloadPDF(htmlBill, saleData.invoiceId);
@@ -211,7 +267,6 @@ const Billing = ({ isDarkMode }) => {
       console.error("Printing error", printErr);
     }
 
-    
     setCart([]); 
     setCustomerInfo({ name: '', phone: '', email: '', address: '' });
     setDiscount(0);
