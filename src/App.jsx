@@ -7,7 +7,8 @@ import Analytics from './components/Analytics';
 import SalesHistory from './components/SalesHistory';
 import { ShoppingCart, LogOut, Package, BarChart3, Calendar, Moon, Sun, Loader2 } from 'lucide-react';
 import api from './api';
-import { getOfflineSales, removeOfflineSale } from './utils/db'; // 💡 PWA Offline DB Imports
+import { getOfflineSales, removeOfflineSale } from './utils/db'; 
+import logo2 from './assets/2.png';
 
 const AppContent = () => {
   
@@ -171,7 +172,10 @@ const AppContent = () => {
             <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/30 shadow-inner">
                <ShoppingCart className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2 tracking-wide">MobileHub</h1>
+            <div className="flex flex-col items-center justify-center text-center">
+                  <img src={logo2} alt="Yaluwo Mobile"
+                  className="w-27 h-12 mb-1 p-0" />
+                </div>
             <p className="text-indigo-200 font-medium">POS System Login</p>
           </div>
           
@@ -204,7 +208,14 @@ const AppContent = () => {
       )}
       
       <header className="bg-indigo-600 text-white p-4 flex justify-between items-center shadow-lg z-10">
-        <h1 className="text-xl md:text-2xl font-bold flex items-center"><ShoppingCart className="mr-2"/> MobileHub POS</h1>
+        
+        <div className="hidden sm:block">
+          
+                <div className="flex flex-col items-center justify-center text-center">
+                  <img src={logo2} alt="Yaluwo Mobile"
+                  className="w-20 h-8 mb-1 p-0 pl-3" />
+                </div>
+              </div>
         <div className="flex items-center gap-4">
           <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 bg-indigo-500 rounded-full hover:bg-indigo-700 transition-colors shadow-inner" title="Toggle Theme">
             {isDarkMode ? <Sun className="w-5 h-5"/> : <Moon className="w-5 h-5"/>}
